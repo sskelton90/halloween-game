@@ -315,8 +315,16 @@ button:focus-visible { outline: 4px solid var(--moon); outline-offset: 4px; }
       }
       rings.push({ x, y, r, t: 0 });
     }
-    function candyRain(n) {
-      for (let i = 0; i < n; i++) rain.push({ x: Math.random() * W, y: -40 - Math.random() * H * 0.6, vy: 180 + Math.random() * 220, rot: Math.random() * 6, vr: (Math.random() - .5) * 6, e: CANDY[i % CANDY.length], s: 34 + Math.random() * 40 });
+    function speak(text) {
+      try {
+        const s = window.speechSynthesis; if (!s) return;
+        s.cancel();
+        const u = new SpeechSynthesisUtterance(text); u.pitch = 1.9; u.rate = 1.05; u.lang = "en-GB";
+        s.speak(u);
+      } catch (e) {}
+    }
+    function candyRain(n, only) {
+      for (let i = 0; i < n; i++) rain.push({ x: Math.random() * W, y: -40 - Math.random() * H * 0.6, vy: 180 + Math.random() * 220, rot: Math.random() * 6, vr: (Math.random() - .5) * 6, e: only || CANDY[i % CANDY.length], s: 34 + Math.random() * 40 });
     }
     function banner(text, color) { banners.push({ text, color, t: 0 }); }
 
@@ -361,7 +369,14 @@ button:focus-visible { outline: 4px solid var(--moon); outline-offset: 4px; }
       }
       bubbles = bubbles.filter(b => b !== target);
       const x = target.hx ?? target.x;
-      if (target.candy) {
+      if (target.candy === "pants") {
+        burst(x, target.y, target.r, "#4fc3f7", true);
+        candyRain(45, "🩲");
+        banner("Where are my pants?!", "#4fc3f7");
+        tone("sine", 500, 180, 0.7, 0.25, 0, 18);
+        speak("Where are my pants?!");
+        bump(p); addCandy(3);
+      } else if (target.candy) {
         burst(x, target.y, target.r, "#ffd23f", true);
         candyRain(30);
         banner(`${PLAYERS[p].face} ${PLAYERS[p].name} got the candy!`, PLAYERS[p].color);
@@ -421,7 +436,7 @@ button:focus-visible { outline: 4px solid var(--moon); outline-offset: 4px; }
         for (const p of order) if (bubbles.filter(b => b.p === p && !b.candy).length < cap) { spawn(p); break; }
       }
       if (started && now > nextCandyAt && !bubbles.some(b => b.candy)) {
-        spawn(0, undefined, true);
+        spawn(0, undefined, Math.random() < 0.35 ? "pants" : true);
         nextCandyAt = now + 18000 + Math.random() * 10000;
       }
 
@@ -449,7 +464,7 @@ button:focus-visible { outline: 4px solid var(--moon); outline-offset: 4px; }
         ctx.fillStyle = "rgba(255,255,255,0.85)"; ctx.fill();
         const wig = reduce ? 0 : Math.sin(b.t * 5 + b.phase) * 0.15;
         ctx.save(); ctx.translate(x, b.y + b.r * 0.05); ctx.rotate(wig);
-        drawEmoji(b.candy ? "🍬" : PLAYERS[b.p].face, 0, 0, b.r * 0.95);
+        drawEmoji(b.candy === "pants" ? "🩲" : b.candy ? "🍬" : PLAYERS[b.p].face, 0, 0, b.r * 0.95);
         ctx.restore();
       }
       bubbles = bubbles.filter(b => b.y > -b.r * 1.2);
