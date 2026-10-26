@@ -1,0 +1,476 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<style>[hidden]{display:none!important}body{margin:0}</style>
+<title>Pumpkin Decorator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&family=Griffy&display=swap">
+<style>
+/* Layout: the TV is a pumpkin patch at night with one giant pumpkin; each phone is a sticker box for its face. */
+:root {
+  --night: #1b0f33;
+  --dusk: #3a1d63;
+  --glow: #6b3fa0;
+  --moon: #fff3b8;
+  --candy: #ff8a1f;
+  --slime: #9cf26b;
+  --ink: #1b0f33;
+  --text: #fff6e6;
+  --glass: rgba(255, 246, 230, 0.12);
+  --glass-line: rgba(255, 246, 230, 0.32);
+  --carve: #4a1d00;
+  --display: "Griffy", "Baloo 2", "Comic Sans MS", cursive;
+  --body: "Baloo 2", "Arial Rounded MT Bold", "Trebuchet MS", system-ui, sans-serif;
+  color-scheme: dark;
+}
+html, body { height: 100%; }
+body {
+  background: var(--night); color: var(--text); font-family: var(--body);
+  overflow: hidden; -webkit-user-select: none; user-select: none;
+  -webkit-tap-highlight-color: transparent; touch-action: manipulation;
+}
+.sky {
+  position: fixed; inset: 0; z-index: 0; transition: filter .6s;
+  background:
+    radial-gradient(70% 30% at 50% 108%, #2c5a1e 0 60%, transparent 61%),
+    radial-gradient(60% 50% at 50% 115%, rgba(156, 242, 107, 0.2), transparent 70%),
+    linear-gradient(180deg, var(--night) 0%, var(--dusk) 60%, var(--glow) 100%);
+}
+body.lit .sky { filter: brightness(.45); }
+.moon {
+  position: fixed; z-index: 0; top: calc(6vh + env(safe-area-inset-top, 0px)); right: max(6vw, env(safe-area-inset-right, 0px));
+  width: min(18vmin, 180px); aspect-ratio: 1; max-width: 100%; border-radius: 50%;
+  background: radial-gradient(circle at 38% 35%, #fffbe0, var(--moon) 55%, #f3d97a);
+  box-shadow: 0 0 60px 20px rgba(255, 243, 184, 0.22);
+}
+.moon::before, .moon::after { content: ""; position: absolute; top: 38%; width: 10%; height: 14%; border-radius: 50%; background: #6b5a2a; }
+.moon::before { left: 32%; } .moon::after { right: 32%; }
+.moon i { position: absolute; left: 30%; right: 30%; top: 56%; height: 16%; border-bottom: .5vmin solid #6b5a2a; border-radius: 0 0 50% 50%; }
+.view {
+  position: fixed; inset: 0; z-index: 1;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: calc(14px + env(safe-area-inset-top, 0px)) calc(14px + env(safe-area-inset-bottom, 0px));
+}
+button { font-family: var(--body); color: inherit; cursor: pointer; }
+button:focus-visible { outline: 4px solid var(--moon); outline-offset: 3px; }
+
+/* ---------- Home ---------- */
+.home { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1.4rem; text-align: center; }
+.home h1 { margin: 0; font-family: var(--display); font-weight: 400; font-size: clamp(2.8rem, 11vw, 7rem); line-height: .95; color: var(--candy); text-wrap: balance; text-shadow: 0 6px 0 rgba(0,0,0,.35); }
+.home h1 span { display: block; color: var(--slime); font-size: .5em; }
+.home p { margin: 0; max-width: 34ch; font-size: 1.15rem; opacity: .9; }
+.home .mini { width: min(40vmin, 220px); max-width: 100%; }
+.choices { display: flex; flex-wrap: wrap; gap: 1rem; justify-content: center; width: 100%; max-width: 640px; }
+.choice {
+  flex: 1 1 240px; min-height: 130px; border-radius: 28px; border: 2px solid var(--glass-line);
+  background: var(--glass); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .2rem;
+  font-size: 1.6rem; font-weight: 800; transition: transform .12s;
+}
+.choice small { font-size: 1rem; font-weight: 500; opacity: .8; }
+.choice .big { font-size: 2.8rem; line-height: 1; }
+.choice:active { transform: scale(.96); }
+
+/* ---------- Pumpkin drawing ---------- */
+.pk { overflow: visible; }
+.pk .carve { fill: var(--carve); transition: fill .4s; }
+.pk .carve-line { stroke: var(--carve); fill: none; transition: stroke .4s; }
+.pk.lit { --carve: #ffe066; }
+.pk.lit .carve, .pk.lit .carve-line { filter: drop-shadow(0 0 6px #ffb300) drop-shadow(0 0 14px #ff7a00); }
+.pk .part { transform-box: fill-box; transform-origin: center; }
+.pk .part.drop { animation: drop .55s cubic-bezier(.3, 1.6, .5, 1); }
+@keyframes drop { from { transform: translateY(-60px) scale(1.7); opacity: 0; } to { transform: none; opacity: 1; } }
+.pk .pupil { animation: jiggle 2.4s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+@keyframes jiggle { 0%, 100% { transform: translate(0, 0); } 25% { transform: translate(-6px, 2px); } 50% { transform: translate(4px, -3px); } 75% { transform: translate(-2px, 5px); } }
+.pk .flap { animation: flap .5s ease-in-out infinite alternate; transform-box: fill-box; transform-origin: center; }
+@keyframes flap { from { transform: scaleY(1) translateY(0); } to { transform: scaleY(.8) translateY(-6px); } }
+
+/* ---------- Big screen ---------- */
+.screen { display: flex; flex-direction: column; align-items: center; pointer-events: none; }
+.topbar { width: 100%; box-sizing: border-box; display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; flex-wrap: wrap; padding-right: min(22vmin, 200px); }
+.brand { font-family: var(--display); font-size: clamp(1.6rem, 3.4vw, 2.8rem); color: var(--candy); }
+.hint { font-size: clamp(.9rem, 1.6vw, 1.2rem); background: var(--glass); border: 1px solid var(--glass-line); border-radius: 999px; padding: .4rem 1rem; max-width: 100%; }
+.stage { flex: 1; min-height: 0; width: 100%; display: flex; align-items: center; justify-content: center; }
+#bigPk { height: min(82vh, 120vw); max-width: 100%; pointer-events: auto; cursor: pointer; }
+.sway { transform-box: fill-box; transform-origin: 50% 100%; animation: sway 4s ease-in-out infinite; }
+@keyframes sway { 0%, 100% { transform: rotate(-1.5deg); } 50% { transform: rotate(1.5deg); } }
+.squish { animation: squish .45s ease-out; transform-box: fill-box; transform-origin: 50% 100%; }
+@keyframes squish { 0% { transform: scale(1, 1); } 30% { transform: scale(1.08, .9); } 60% { transform: scale(.96, 1.05); } 100% { transform: scale(1, 1); } }
+.dance { animation: dance .5s ease-in-out 8; transform-box: fill-box; transform-origin: 50% 100%; }
+@keyframes dance { 0%, 100% { transform: rotate(0) translateY(0); } 25% { transform: rotate(-8deg) translateY(-14px); } 75% { transform: rotate(8deg) translateY(-14px); } }
+.rollout { animation: rollout .7s ease-in forwards; transform-box: fill-box; transform-origin: center; }
+@keyframes rollout { to { transform: translateX(140%) rotate(220deg); opacity: 0; } }
+.rollin { animation: rollin .8s cubic-bezier(.2, 1.2, .4, 1); transform-box: fill-box; transform-origin: center; }
+@keyframes rollin { from { transform: translateX(-140%) rotate(-220deg); } to { transform: none; } }
+.spark { position: fixed; z-index: 3; pointer-events: none; font-size: clamp(2rem, 5vmin, 4rem); animation: spark 1.6s ease-out forwards; }
+@keyframes spark { from { transform: translate(0, 0) scale(.3); opacity: 0; } 20% { opacity: 1; } to { transform: translate(var(--dx), var(--dy)) scale(1.2) rotate(40deg); opacity: 0; } }
+.toast { position: fixed; z-index: 3; left: 50%; bottom: calc(5vh + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%);
+  font-family: var(--display); font-size: clamp(1.6rem, 4vw, 3.4rem); color: var(--slime); text-shadow: 0 4px 0 rgba(0,0,0,.4); white-space: nowrap; pointer-events: none; transition: opacity .3s; }
+.start { position: fixed; inset: 0; z-index: 5; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1.2rem;
+  background: rgba(27, 15, 51, .6); text-align: center; pointer-events: auto; }
+.start button { font-size: clamp(2rem, 5vw, 3.5rem); font-weight: 800; padding: .5rem 2.4rem; border-radius: 999px; border: 0; background: var(--candy); color: var(--ink); box-shadow: 0 8px 0 rgba(0,0,0,.4); }
+.start p { margin: 0; font-size: clamp(1rem, 2vw, 1.4rem); max-width: 42ch; }
+
+/* ---------- Controller ---------- */
+.pad { display: flex; flex-direction: column; gap: .8rem; }
+.pad-top { display: flex; justify-content: space-between; align-items: center; gap: .75rem; }
+.status { font-size: .95rem; display: flex; align-items: center; gap: .5rem; min-width: 0; }
+.dot { width: 12px; height: 12px; border-radius: 50%; background: var(--candy); flex: none; }
+.dot.ok { background: var(--slime); }
+.small-btn { background: var(--glass); border: 1px solid var(--glass-line); border-radius: 999px; padding: .4rem .9rem; font-size: .95rem; font-weight: 700; flex: none; }
+.tabs { display: grid; grid-template-columns: repeat(6, 1fr); gap: .4rem; }
+.tab { aspect-ratio: 1; max-width: 100%; border-radius: 18px; border: 3px solid transparent; background: var(--glass); font-size: clamp(1.5rem, 7vw, 2.2rem); line-height: 1; display: flex; align-items: center; justify-content: center; }
+.tab.on { background: var(--candy); border-color: var(--text); }
+.tiles { flex: 1; min-height: 0; overflow-y: auto; display: grid; grid-template-columns: repeat(2, 1fr); gap: .8rem; align-content: start; padding: 2px; }
+.tile { border-radius: 24px; border: 4px solid transparent; background: rgba(0,0,0,.25); padding: .3rem; display: flex; flex-direction: column; align-items: center; gap: .1rem; transition: transform .1s; }
+.tile svg { width: 100%; height: auto; aspect-ratio: 1.4; max-width: 100%; overflow: hidden; border-radius: 16px; }
+body.on-pad .moon { display: none; }
+.tile span { font-weight: 800; font-size: 1.05rem; }
+.tile.on { border-color: var(--slime); background: rgba(156, 242, 107, .15); }
+.tile:active { transform: scale(.94); }
+.actions { display: grid; grid-template-columns: 1fr 1.4fr; gap: .7rem; }
+.act { border: 0; border-radius: 22px; padding: .8rem .5rem; font-size: 1.35rem; font-weight: 800; box-shadow: 0 6px 0 rgba(0,0,0,.35); }
+.act:active { transform: translateY(4px); box-shadow: 0 2px 0 rgba(0,0,0,.35); }
+.act.surprise { background: var(--glow); }
+.act.light { background: var(--moon); color: var(--ink); }
+
+@media (prefers-reduced-motion: reduce) {
+  .sway, .dance, .squish, .pk .pupil, .pk .flap, .rollout, .rollin { animation: none !important; }
+  .pk .part.drop { animation-duration: .01s; }
+  .spark { animation-duration: .01s; }
+}
+</style>
+</head>
+<body>
+
+<div class="sky"></div>
+<div class="moon" aria-hidden="true"><i></i></div>
+
+<section class="view home" id="home">
+  <svg class="pk mini" id="homePk" viewBox="0 -40 400 440" aria-hidden="true"></svg>
+  <h1>Pumpkin<span>Decorator</span></h1>
+  <p>Open this page on the TV and tap Big screen. Then scan the QR code on the TV with each phone.</p>
+  <div class="choices">
+    <button class="choice" id="goScreen"><span class="big">📺</span>Big screen<small>The TV or laptop</small></button>
+    <button class="choice" id="goPad"><span class="big">📱</span>Controller<small>One per decorator</small></button>
+  </div>
+</section>
+
+<section class="view screen" id="screen" hidden>
+  <div class="topbar">
+    <div class="brand">Pumpkin Decorator</div>
+    <div class="hint" id="hint">Open this link on a phone and tap Controller</div>
+  </div>
+  <div class="stage">
+    <svg class="pk" id="bigPk" viewBox="0 -40 400 440" role="img" aria-label="The pumpkin"></svg>
+  </div>
+</section>
+<div class="toast" id="toast" hidden></div>
+<div class="start" id="start" hidden>
+  <button id="startBtn">Start!</button>
+  <p>Starting turns the sound on. Without phones, tap the pumpkin for a surprise, press L to light it, or N for a new pumpkin.</p>
+</div>
+
+<section class="view pad" id="pad" hidden>
+  <div class="pad-top">
+    <div class="status"><span class="dot" id="dot"></span><span id="statusText">Looking for the big screen…</span></div>
+    <button class="small-btn" id="newBtn">New pumpkin</button>
+  </div>
+  <div class="tabs" id="tabs" role="tablist"></div>
+  <div class="tiles" id="tiles"></div>
+  <div class="actions">
+    <button class="act surprise" id="surpriseBtn">🎲 Surprise!</button>
+    <button class="act light" id="lightBtn">✨ Light it up!</button>
+  </div>
+</section>
+
+<script src="peerjs.min.js"></script>
+<script src="qrcode.js"></script>
+<script src="net.js"></script>
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+
+  // ---------- Pumpkin parts (all drawn in a 400 x 400 space) ----------
+  const EL = 150, ER = 250, EY = 205;
+  const two = (f) => f(EL, EY) + f(ER, EY);
+  const googly = (x, y, r = 30) => `<circle cx="${x}" cy="${y}" r="${r}" fill="#fff" stroke="#222" stroke-width="4"/><circle class="pupil" cx="${x + r * .18}" cy="${y + r * .2}" r="${r * .42}" fill="#222"/>`;
+  const heart = (x, y, s = 1, fill = "#ff4f8b") => `<path transform="translate(${x} ${y}) scale(${s})" d="M0 22 C-30 2 -26 -24 0 -10 C26 -24 30 2 0 22 Z" fill="${fill}" stroke="#b8235a" stroke-width="3"/>`;
+  const star = (x, y, R = 30, r = 13) => { let p = ""; for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + i * Math.PI / 5, rr = i % 2 ? r : R; p += `${(x + Math.cos(a) * rr).toFixed(1)},${(y + Math.sin(a) * rr).toFixed(1)} `; } return `<polygon points="${p}" fill="#ffd23f" stroke="#b88400" stroke-width="3"/>`; };
+
+  const COLOURS = {
+    orange: { name: "Orange", body: "#ff8a1f", rib: "#d9640a" },
+    green:  { name: "Green",  body: "#7ccf4a", rib: "#4f9a2b" },
+    purple: { name: "Purple", body: "#a46cf0", rib: "#7442c0" },
+    white:  { name: "Ghosty", body: "#f3efe6", rib: "#cfc6b4" },
+    pink:   { name: "Pink",   body: "#ff8fc8", rib: "#e05f9f" },
+    blue:   { name: "Blue",   body: "#5fb8ff", rib: "#2f86d0" },
+  };
+
+  const SLOTS = [
+    { id: "colour", icon: "🎨", label: "Colour", view: "0 -20 400 420", options: Object.fromEntries(Object.entries(COLOURS).map(([k, c]) => [k, { name: c.name, svg: "" }])) },
+    { id: "eyes", icon: "👀", label: "Eyes", view: "90 150 220 120", options: {
+      googly:   { name: "Googly",   svg: two((x, y) => googly(x, y)) },
+      triangle: { name: "Spooky",   svg: two((x, y) => `<polygon class="carve" points="${x - 26},${y + 18} ${x + 26},${y + 18} ${x},${y - 26}"/>`) },
+      happy:    { name: "Happy",    svg: two((x, y) => `<path class="carve-line" d="M${x - 24} ${y + 8} Q${x} ${y - 24} ${x + 24} ${y + 8}" stroke-width="10" stroke-linecap="round"/>`) },
+      hearts:   { name: "Love",     svg: two((x, y) => heart(x, y)) },
+      stars:    { name: "Stars",    svg: two((x, y) => star(x, y)) },
+      one:      { name: "One eye",  svg: googly(200, 200, 46) },
+    }},
+    { id: "nose", icon: "👃", label: "Nose", view: "130 205 140 90", options: {
+      tri:    { name: "Pointy", svg: `<polygon class="carve" points="184,264 216,264 200,234"/>` },
+      clown:  { name: "Clown",  svg: `<circle cx="200" cy="250" r="22" fill="#ff3b3b" stroke="#b81f1f" stroke-width="3"/><circle cx="193" cy="243" r="6" fill="#fff" opacity=".7"/>` },
+      pig:    { name: "Piggy",  svg: `<ellipse cx="200" cy="250" rx="28" ry="19" fill="#ffb3cf" stroke="#e0789f" stroke-width="4"/><ellipse cx="191" cy="250" rx="5" ry="8" fill="#7a2b46"/><ellipse cx="209" cy="250" rx="5" ry="8" fill="#7a2b46"/>` },
+      button: { name: "Button", svg: `<circle class="carve" cx="200" cy="250" r="10"/>` },
+      heart:  { name: "Heart",  svg: heart(200, 250, .7) },
+      carrot: { name: "Carrot", svg: `<path d="M190 240 L250 252 L190 262 Z" fill="#ff7b1c" stroke="#c4520a" stroke-width="3" stroke-linejoin="round"/><path d="M196 245 l6 3 M196 256 l7 -2" stroke="#c4520a" stroke-width="2"/>` },
+    }},
+    { id: "mouth", icon: "👄", label: "Mouth", view: "110 255 180 110", options: {
+      grin:   { name: "Grin",    svg: `<path class="carve" d="M130 290 Q200 360 270 290 Q200 320 130 290 Z"/>` },
+      toothy: { name: "Toothy",  svg: `<path class="carve" d="M125 288 Q200 355 275 288 L255 298 L245 284 L230 300 L215 284 L200 300 L185 284 L170 300 L155 284 L145 298 Z"/>` },
+      ooh:    { name: "Ooh!",    svg: `<ellipse class="carve" cx="200" cy="305" rx="22" ry="28"/>` },
+      tongue: { name: "Silly",   svg: `<path class="carve" d="M145 292 Q200 350 255 292 Q200 314 145 292 Z"/><ellipse cx="212" cy="322" rx="17" ry="15" fill="#ff6f91" stroke="#c2375a" stroke-width="3"/>` },
+      fangs:  { name: "Vampire", svg: `<path class="carve" d="M135 290 Q200 352 265 290 Q200 316 135 290 Z"/><polygon points="170,302 184,305 177,322" fill="#fff"/><polygon points="216,305 230,302 223,322" fill="#fff"/>` },
+      wavy:   { name: "Wobbly",  svg: `<path class="carve-line" d="M140 305 q15 -14 30 0 t30 0 t30 0 t30 0" stroke-width="10" stroke-linecap="round"/>` },
+    }},
+    { id: "hat", icon: "🎩", label: "Hat", view: "40 -40 320 190", options: {
+      witch: { name: "Witch", svg: `<path d="M140 124 C170 70 190 30 240 -14 C232 20 236 60 262 124 Z" fill="#4b2c80" stroke="#2e1950" stroke-width="3"/><path d="M146 104 L252 104 L258 124 L142 124 Z" fill="#9cf26b"/><rect x="190" y="104" width="20" height="20" fill="none" stroke="#ffd23f" stroke-width="5"/><ellipse cx="200" cy="128" rx="122" ry="17" fill="#3d2466" stroke="#2e1950" stroke-width="3"/>` },
+      party: { name: "Party", svg: `<path d="M155 128 L200 8 L245 128 Z" fill="#4fc3f7" stroke="#1f7fb0" stroke-width="3"/><path d="M174 78 L226 78 M164 104 L236 104" stroke="#ff5fa2" stroke-width="9"/><circle cx="200" cy="8" r="15" fill="#ffd23f"/><circle cx="188" cy="55" r="5" fill="#fff"/><circle cx="214" cy="92" r="5" fill="#fff"/>` },
+      top:   { name: "Top hat", svg: `<rect x="150" y="22" width="100" height="100" rx="6" fill="#2a2a2a"/><rect x="150" y="92" width="100" height="18" fill="#ff8a1f"/><ellipse cx="200" cy="124" rx="96" ry="14" fill="#1d1d1d"/>` },
+      crown: { name: "Crown", svg: `<path d="M140 128 L140 58 L170 90 L200 40 L230 90 L260 58 L260 128 Z" fill="#ffd23f" stroke="#c99a00" stroke-width="4" stroke-linejoin="round"/><circle cx="200" cy="105" r="10" fill="#ff3b6b"/><circle cx="165" cy="110" r="7" fill="#4fc3f7"/><circle cx="235" cy="110" r="7" fill="#9cf26b"/>` },
+      bow:   { name: "Bow", svg: `<path d="M250 112 L210 88 L214 136 Z M250 112 L292 90 L288 136 Z" fill="#ff5fa2" stroke="#c2306f" stroke-width="3" stroke-linejoin="round"/><circle cx="250" cy="112" r="12" fill="#ff8cc0" stroke="#c2306f" stroke-width="3"/>` },
+      cat:   { name: "Cat ears", svg: `<path d="M120 150 L130 60 L190 125 Z M280 150 L270 60 L210 125 Z" fill="#2a2235"/><path d="M135 132 L140 85 L172 120 Z M265 132 L260 85 L228 120 Z" fill="#ff9fc7"/>` },
+    }},
+    { id: "extra", icon: "✨", label: "Extras", view: "60 120 280 260", options: {
+      moustache: { name: "Moustache", svg: `<path transform="translate(200 274)" d="M0 -4 C-20 -18 -45 -14 -55 2 C-62 14 -48 22 -44 10 C-30 0 -12 6 0 4 C12 6 30 0 44 10 C48 22 62 14 55 2 C45 -14 20 -18 0 -4Z" fill="#3b2412"/>` },
+      glasses:   { name: "Glasses",   svg: `<circle cx="${EL}" cy="${EY}" r="42" fill="rgba(200,240,255,.25)" stroke="#222" stroke-width="7"/><circle cx="${ER}" cy="${EY}" r="42" fill="rgba(200,240,255,.25)" stroke="#222" stroke-width="7"/><path d="M192 200 Q200 190 208 200" stroke="#222" stroke-width="7" fill="none"/>` },
+      cheeks:    { name: "Rosy",      svg: `<ellipse cx="112" cy="262" rx="24" ry="15" fill="#ff5f8f" opacity=".6"/><ellipse cx="288" cy="262" rx="24" ry="15" fill="#ff5f8f" opacity=".6"/>` },
+      bowtie:    { name: "Bow tie",   svg: `<path d="M200 372 L160 352 L160 392 Z M200 372 L240 352 L240 392 Z" fill="#e0245e" stroke="#9c1240" stroke-width="3" stroke-linejoin="round"/><circle cx="200" cy="372" r="11" fill="#ff5f8f" stroke="#9c1240" stroke-width="3"/><circle cx="174" cy="366" r="4" fill="#fff"/><circle cx="226" cy="380" r="4" fill="#fff"/>` },
+      freckles:  { name: "Freckles",  svg: [[112,258],[124,270],[102,272],[118,282],[288,258],[276,270],[298,272],[282,282]].map(([x, y]) => `<circle cx="${x}" cy="${y}" r="4.5" fill="#8a3a0a"/>`).join("") },
+      bat:       { name: "Bat buddy", svg: `<g class="flap"><path d="M330 120 C318 100 296 98 284 108 C296 112 300 122 296 130 C306 124 318 128 322 136 C326 128 334 124 344 130 C340 122 344 112 356 108 C344 98 322 100 330 120Z" fill="#4b2c80" stroke="#2e1950" stroke-width="3" stroke-linejoin="round"/></g><circle cx="320" cy="120" r="12" fill="#5c3797"/><circle cx="315" cy="117" r="3.5" fill="#fff"/><circle cx="325" cy="117" r="3.5" fill="#fff"/><path d="M314 125 q6 5 12 0" stroke="#fff" stroke-width="2" fill="none"/>` },
+    }},
+  ];
+  const SLOT = Object.fromEntries(SLOTS.map(s => [s.id, s]));
+  const ORDER = ["colour", "hat", "eyes", "nose", "mouth", "extra"]; // draw order: hat behind face parts
+  const blankFace = () => ({ colour: "orange", eyes: null, nose: null, mouth: null, hat: null, extra: null });
+
+  function body(colourKey) {
+    const c = COLOURS[colourKey] || COLOURS.orange;
+    const e = (cx, rx, ry) => `<ellipse cx="${cx}" cy="250" rx="${rx}" ry="${ry}" fill="${c.body}" stroke="${c.rib}" stroke-width="5"/>`;
+    return `<path d="M190 130 C186 104 190 88 206 76 L218 86 C206 98 206 112 212 130 Z" fill="#5b8c2a" stroke="#3d6a17" stroke-width="3"/>`
+      + `<path d="M212 92 C232 80 246 86 248 100" fill="none" stroke="#5b8c2a" stroke-width="5" stroke-linecap="round"/>`
+      + e(105, 80, 108) + e(295, 80, 108) + e(150, 88, 118) + e(250, 88, 118) + e(200, 92, 122)
+      + `<ellipse cx="155" cy="190" rx="22" ry="38" fill="#fff" opacity=".18" transform="rotate(18 155 190)"/>`;
+  }
+  function pumpkinSVG(face, droppedSlot) {
+    let s = `<g class="body">${body(face.colour)}</g>`;
+    for (const id of ORDER.slice(1)) {
+      const v = face[id]; if (!v || !SLOT[id].options[v]) continue;
+      s += `<g class="part${id === droppedSlot ? " drop" : ""}" data-slot="${id}">${SLOT[id].options[v].svg}</g>`;
+    }
+    return s;
+  }
+
+  // ---------- Audio ----------
+  let ac = null;
+  function audio() {
+    if (!ac) { try { ac = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { ac = null; } }
+    if (ac && ac.state === "suspended") ac.resume().catch(() => {});
+    return ac;
+  }
+  function tone(type, f0, f1, dur, vol, delay = 0, vibrato = 0) {
+    const a = ac; if (!a) return;
+    const t = a.currentTime + delay;
+    const o = a.createOscillator(), g = a.createGain();
+    o.type = type; o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(f1, t + dur);
+    if (vibrato) { const l = a.createOscillator(), lg = a.createGain(); l.frequency.value = 7; lg.gain.value = vibrato; l.connect(lg).connect(o.frequency); l.start(t); l.stop(t + dur + .05); }
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + 0.015); g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+    o.connect(g).connect(a.destination); o.start(t); o.stop(t + dur + .05);
+  }
+  const SLOT_PITCH = { colour: 0.7, hat: 0.85, eyes: 1, nose: 1.2, mouth: 1.1, extra: 1.35 };
+  const boing = (slot, vol = .32) => { const m = SLOT_PITCH[slot] || 1; tone("sine", 160 * m, 520 * m, .16, vol); tone("sine", 520 * m, 300 * m, .12, vol * .6, .15); };
+  function tada() {
+    [392, 523, 659, 784].forEach((f, i) => tone("triangle", f, f, i === 3 ? .7 : .16, .25, i * .1));
+    tone("sine", 620, 260, .9, .18, .55, 25);
+  }
+  function whoosh() { tone("sawtooth", 900, 120, .5, .08); }
+
+  // ---------- Home ----------
+  $("homePk").innerHTML = pumpkinSVG({ colour: "orange", eyes: "googly", nose: "clown", mouth: "tongue", hat: "witch", extra: "cheeks" });
+  $("goScreen").onclick = () => { $("home").hidden = true; startScreen(); };
+  $("goPad").onclick = () => { $("home").hidden = true; startPad(Net.codeFromUrl()); };
+  if (Net.codeFromUrl()) { $("home").hidden = true; startPad(Net.codeFromUrl()); }
+
+  // =====================================================================
+  // BIG SCREEN
+  // =====================================================================
+  function startScreen() {
+    document.body.classList.add("on-screen");
+    $("screen").hidden = false; $("start").hidden = false;
+    const svg = $("bigPk");
+    let face = blankFace(), net = null, litTimer = 0, toastTimer = 0, busy = false;
+    const queue = [];
+    svg.innerHTML = `<g id="wrap" class="sway"><g id="pkg">${pumpkinSVG(face)}</g></g>`;
+
+    const pkg = () => $("pkg");
+    function restart(el, cls) { el.classList.remove(cls); void el.getBoundingClientRect(); el.classList.add(cls); }
+    function toast(text) {
+      const t = $("toast"); t.textContent = text; t.hidden = false; t.style.opacity = 1;
+      clearTimeout(toastTimer); toastTimer = setTimeout(() => { t.style.opacity = 0; }, 1400);
+    }
+    function share() { if (net) net.broadcast({ t: "face", face }); }
+
+    function apply(slot, value) {
+      if (!SLOT[slot] || !(value in SLOT[slot].options)) return;
+      face[slot] = value;
+      pkg().innerHTML = pumpkinSVG(face, slot === "colour" ? null : slot);
+      restart(pkg(), "squish");
+      boing(slot);
+      toast(`${SLOT[slot].options[value].name}!`);
+      share();
+    }
+    function sparkles(n = 14) {
+      const r = svg.getBoundingClientRect();
+      const cx = r.left + r.width / 2, cy = r.top + r.height * .55;
+      const pool = ["✨", "⭐", "🍬", "🌟", "🍭"];
+      for (let i = 0; i < n; i++) {
+        const s = document.createElement("div"); s.className = "spark"; s.textContent = pool[i % pool.length];
+        const a = Math.random() * 6.28, d = r.width * (.4 + Math.random() * .4);
+        s.style.left = cx + "px"; s.style.top = cy + "px";
+        s.style.setProperty("--dx", Math.cos(a) * d + "px"); s.style.setProperty("--dy", Math.sin(a) * d * .8 + "px");
+        s.style.animationDelay = (i * 60) + "ms";
+        document.body.appendChild(s); setTimeout(() => s.remove(), 2600);
+      }
+    }
+    function lightUp() {
+      svg.classList.add("lit"); document.body.classList.add("lit");
+      restart(pkg(), "dance"); tada(); sparkles(); toast("Ta-da!");
+      clearTimeout(litTimer);
+      litTimer = setTimeout(() => { svg.classList.remove("lit"); document.body.classList.remove("lit"); pkg().classList.remove("dance"); }, 4200);
+    }
+    function freshPumpkin() {
+      const wrap = $("pkg");
+      whoosh(); restart(wrap, "rollout");
+      setTimeout(() => {
+        face = blankFace();
+        wrap.classList.remove("rollout");
+        wrap.innerHTML = pumpkinSVG(face);
+        restart(wrap, "rollin"); boing("colour"); toast("New pumpkin!");
+        share();
+      }, 700);
+    }
+    function randomPicks() {
+      return SLOTS.map(s => { const keys = Object.keys(s.options); return { s: s.id, v: keys[Math.floor(Math.random() * keys.length)] }; });
+    }
+    // play actions one at a time so every change gets its own boing
+    function enqueue(a) { queue.push(a); if (!busy) drain(); }
+    function drain() {
+      const a = queue.shift(); if (!a) { busy = false; return; }
+      busy = true;
+      if (a.type === "pick") apply(a.s, a.v);
+      else if (a.type === "light") lightUp();
+      else if (a.type === "new") freshPumpkin();
+      setTimeout(drain, a.type === "new" ? 1000 : 260);
+    }
+
+    // local play
+    svg.addEventListener("pointerdown", () => { if ($("start").hidden) { const p = randomPicks(); const one = p[1 + Math.floor(Math.random() * 5)]; enqueue({ type: "pick", ...one }); } });
+    window.addEventListener("keydown", (e) => {
+      if (!$("start").hidden) return;
+      const k = e.key.toLowerCase();
+      if (k === "l" || k === " ") enqueue({ type: "light" });
+      else if (k === "n") enqueue({ type: "new" });
+      else if (k === "r") randomPicks().forEach(p => enqueue({ type: "pick", ...p }));
+    });
+    $("startBtn").onclick = async () => {
+      audio(); $("start").hidden = true; boing("colour");
+      try { if (navigator.wakeLock) await navigator.wakeLock.request("screen"); } catch (e) {}
+      try { if (document.documentElement.requestFullscreen) await document.documentElement.requestFullscreen(); } catch (e) {}
+    };
+
+    // phones
+    let pads = 0;
+    $("hint").textContent = "Getting ready for phones…";
+    net = Net.host("pumpkin", {
+      onReady: (code) => { Net.joinCard(code); $("hint").hidden = true; },
+      onJoin: (c) => { pads++; Net.setCount(pads); net.send(c, { t: "face", face }); },
+      onLeave: () => { pads = Math.max(0, pads - 1); Net.setCount(pads); },
+      onMessage: (m) => {
+        if (m.t === "pick") enqueue({ type: "pick", s: String(m.s), v: String(m.v) });
+        else if (m.t === "light") enqueue({ type: "light" });
+        else if (m.t === "new") enqueue({ type: "new" });
+      },
+      onProblem: () => { $("hint").hidden = false; $("hint").textContent = "Phones can't connect right now. Check the internet connection and reload."; },
+    });
+  }
+
+  // =====================================================================
+  // CONTROLLER
+  // =====================================================================
+  function startPad(code) {
+    if (!code) { Net.askCode((c) => startPad(c)); return; }
+    $("pad").hidden = false; document.body.classList.add("on-pad");
+    let link = null, tab = "eyes";
+    let face = blankFace();
+
+    function send(m) { if (link) link.send(m); }
+    function pick(s, v) { face[s] = v; send({ t: "pick", s, v }); }
+
+    // tabs
+    for (const s of SLOTS) {
+      const b = document.createElement("button");
+      b.className = "tab"; b.id = "tab-" + s.id; b.textContent = s.icon; b.setAttribute("aria-label", s.label); b.setAttribute("role", "tab");
+      b.onclick = () => { audio(); tab = s.id; render(); };
+      $("tabs").appendChild(b);
+    }
+    function preview(slot, key) {
+      const f = slot === "colour" ? { ...blankFace(), colour: key } : { ...blankFace(), colour: face.colour || "orange", [slot]: key };
+      const view = slot === "colour" ? "10 60 380 330" : SLOT[slot].view;
+      return `<svg class="pk" viewBox="${view}" aria-hidden="true">${pumpkinSVG(f)}</svg>`;
+    }
+    function render() {
+      document.querySelectorAll(".tab").forEach(t => t.classList.toggle("on", t.id === "tab-" + tab));
+      const s = SLOT[tab], box = $("tiles"); box.innerHTML = "";
+      for (const [key, opt] of Object.entries(s.options)) {
+        const b = document.createElement("button");
+        b.className = "tile" + (face[tab] === key ? " on" : ""); b.id = `opt-${tab}-${key}`;
+        b.innerHTML = preview(tab, key) + `<span>${opt.name}</span>`;
+        b.onclick = () => {
+          audio(); boing(tab, .2);
+          try { navigator.vibrate && navigator.vibrate(20); } catch (e) {}
+          pick(tab, key); render();
+        };
+        box.appendChild(b);
+      }
+    }
+    render();
+
+    $("surpriseBtn").onclick = () => {
+      audio(); tone("square", 300, 900, .3, .08);
+      SLOTS.forEach(s => { const keys = Object.keys(s.options); pick(s.id, keys[Math.floor(Math.random() * keys.length)]); });
+      render();
+    };
+    $("lightBtn").onclick = () => { audio(); send({ t: "light" }); tone("triangle", 523, 1047, .3, .15); };
+    $("newBtn").onclick = () => { audio(); face = blankFace(); send({ t: "new" }); render(); };
+
+    link = Net.join("pumpkin", code, {
+      onStatus: (s) => {
+        const ok = s === "open";
+        $("dot").classList.toggle("ok", ok);
+        $("statusText").textContent = ok ? "Connected to the big screen" : s === "notfound" ? `Looking for game ${code}… Is the TV page open?` : "Connecting to the big screen…";
+      },
+      onMessage: (m) => {
+        if (m.t !== "face" || !m.face || typeof m.face !== "object") return;
+        const nf = blankFace();
+        for (const k of Object.keys(nf)) if (typeof m.face[k] === "string" || m.face[k] === null) nf[k] = m.face[k];
+        if (JSON.stringify(nf) !== JSON.stringify(face)) { face = nf; render(); }
+      },
+    });
+  }
+})();
+</script>
+
+</body>
+</html>

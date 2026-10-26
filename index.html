@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Halloween Party Games</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;800&family=Griffy&display=swap">
+<style>
+:root {
+  --night: #1b0f33; --dusk: #3a1d63; --glow: #6b3fa0; --candy: #ff8a1f; --slime: #9cf26b; --text: #fff6e6;
+  --glass: rgba(255, 246, 230, 0.12); --glass-line: rgba(255, 246, 230, 0.32);
+  color-scheme: dark;
+}
+html, body { height: 100%; }
+body {
+  margin: 0; color: var(--text); font-family: "Baloo 2", "Trebuchet MS", system-ui, sans-serif;
+  background: linear-gradient(180deg, var(--night), var(--dusk) 60%, var(--glow));
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1.6rem; text-align: center;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: calc(16px + env(safe-area-inset-top, 0px)) calc(16px + env(safe-area-inset-bottom, 0px));
+  box-sizing: border-box;
+}
+h1 { margin: 0; font-family: "Griffy", "Baloo 2", cursive; font-weight: 400; font-size: clamp(2.6rem, 9vw, 6rem); line-height: 1; color: var(--candy); text-wrap: balance; }
+p { margin: 0; max-width: 36ch; font-size: 1.15rem; opacity: .9; }
+.games { display: flex; flex-wrap: wrap; gap: 1rem; justify-content: center; width: 100%; max-width: 720px; }
+a.game {
+  flex: 1 1 260px; text-decoration: none; color: inherit; border-radius: 28px; border: 2px solid var(--glass-line); background: var(--glass);
+  padding: 1.4rem 1rem; display: flex; flex-direction: column; align-items: center; gap: .3rem; transition: transform .12s;
+}
+a.game:active { transform: scale(.96); }
+a.game:focus-visible { outline: 4px solid var(--slime); outline-offset: 4px; }
+.faces { font-size: 3rem; line-height: 1; }
+.name { font-size: 1.8rem; font-weight: 800; }
+.what { font-size: 1rem; opacity: .85; }
+</style>
+</head>
+<body>
+  <h1>Halloween Party Games</h1>
+  <p>Open a game on the TV and tap Big screen, then scan the QR code with each phone.</p>
+  <div class="games">
+    <a class="game" href="bubble.html"><span class="faces">🎃👻🦇🦉</span><span class="name">Bubble Pop</span><span class="what">Tap to pop your bubbles and fill the candy bucket</span></a>
+    <a class="game" href="pumpkin.html"><span class="faces">🎃✨</span><span class="name">Pumpkin Decorator</span><span class="what">Give the giant pumpkin a silly face, then light it up</span></a>
+  </div>
+</body>
+</html>

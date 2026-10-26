@@ -1,0 +1,588 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<style>[hidden]{display:none!important}body{margin:0}</style>
+<title>Bubble Pop</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&family=Griffy&display=swap">
+<style>
+/* Layout: one full-bleed silly Halloween night; the TV is the sky, each phone is one giant button. */
+:root {
+  --night: #1b0f33;
+  --dusk: #3a1d63;
+  --glow: #6b3fa0;
+  --moon: #fff3b8;
+  --candy: #ff8a1f;
+  --slime: #9cf26b;
+  --ink: #1b0f33;
+  --text: #fff6e6;
+  --glass: rgba(255, 246, 230, 0.12);
+  --glass-line: rgba(255, 246, 230, 0.32);
+  --display: "Griffy", "Baloo 2", "Comic Sans MS", cursive;
+  --body: "Baloo 2", "Arial Rounded MT Bold", "Trebuchet MS", system-ui, sans-serif;
+  color-scheme: dark;
+}
+html, body { height: 100%; }
+body {
+  background: var(--night);
+  color: var(--text);
+  font-family: var(--body);
+  overflow: hidden;
+  -webkit-user-select: none; user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+.sky {
+  position: fixed; inset: 0; z-index: 0;
+  background:
+    radial-gradient(60% 50% at 50% 115%, rgba(156, 242, 107, 0.22), transparent 70%),
+    linear-gradient(180deg, var(--night) 0%, var(--dusk) 60%, var(--glow) 100%);
+}
+.moon {
+  position: fixed; z-index: 0; top: calc(6vh + env(safe-area-inset-top, 0px)); right: max(6vw, env(safe-area-inset-right, 0px));
+  width: min(22vmin, 220px); aspect-ratio: 1; max-width: 100%; border-radius: 50%;
+  background: radial-gradient(circle at 38% 35%, #fffbe0, var(--moon) 55%, #f3d97a);
+  box-shadow: 0 0 60px 20px rgba(255, 243, 184, 0.25);
+}
+.moon::before, .moon::after { content: ""; position: absolute; top: 38%; width: 10%; height: 14%; border-radius: 50%; background: #6b5a2a; }
+.moon::before { left: 32%; } .moon::after { right: 32%; }
+.moon i { position: absolute; left: 30%; right: 30%; top: 56%; height: 16%; border-bottom: .5vmin solid #6b5a2a; border-radius: 0 0 50% 50%; }
+.moon b { position: absolute; top: 58%; width: 12%; height: 7%; border-radius: 50%; background: rgba(255, 138, 31, .45); }
+.moon b:first-of-type { left: 18%; } .moon b:last-of-type { right: 18%; }
+.screen-view, .pad-view, .home {
+  position: fixed; inset: 0; z-index: 1;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: calc(16px + env(safe-area-inset-top, 0px)) calc(16px + env(safe-area-inset-bottom, 0px));
+}
+button { font-family: var(--body); color: inherit; cursor: pointer; }
+button:focus-visible { outline: 4px solid var(--moon); outline-offset: 4px; }
+
+/* ---------- Home ---------- */
+.home { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1.6rem; text-align: center; }
+.home h1 { margin: 0; font-family: var(--display); font-weight: 400; font-size: clamp(3rem, 12vw, 7.5rem); line-height: .95; color: var(--candy); text-wrap: balance; text-shadow: 0 6px 0 rgba(0,0,0,.35); }
+.home h1 span { display: block; color: var(--slime); font-size: .55em; }
+.home p { margin: 0; max-width: 34ch; font-size: 1.15rem; opacity: .9; }
+.cast { font-size: clamp(2.2rem, 8vw, 3.6rem); display: flex; gap: .6rem; }
+.cast span { display: inline-block; animation: hop 1.6s ease-in-out infinite; }
+.cast span:nth-child(2) { animation-delay: .2s; } .cast span:nth-child(3) { animation-delay: .4s; } .cast span:nth-child(4) { animation-delay: .6s; }
+@keyframes hop { 0%, 60%, 100% { transform: translateY(0) rotate(0); } 30% { transform: translateY(-14px) rotate(-8deg); } }
+.choices { display: flex; flex-wrap: wrap; gap: 1rem; justify-content: center; width: 100%; max-width: 640px; }
+.choice {
+  flex: 1 1 240px; min-height: 140px; border-radius: 28px; border: 2px solid var(--glass-line);
+  background: var(--glass); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .25rem;
+  font-size: 1.6rem; font-weight: 800; transition: transform .12s;
+}
+.choice small { font-size: 1rem; font-weight: 500; opacity: .8; }
+.choice .big { font-size: 3rem; line-height: 1; }
+.choice:active { transform: scale(.96); }
+
+/* ---------- Big screen ---------- */
+#pool { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 1; display: block; }
+.screen-view { pointer-events: none; display: flex; flex-direction: column; justify-content: space-between; z-index: 2; }
+.topbar { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; flex-wrap: wrap; padding-right: min(26vmin, 240px); }
+.brand { font-family: var(--display); font-size: clamp(1.6rem, 3.4vw, 2.8rem); color: var(--candy); }
+.hint { font-size: clamp(.9rem, 1.6vw, 1.2rem); background: var(--glass); border: 1px solid var(--glass-line); border-radius: 999px; padding: .4rem 1rem; max-width: 100%; }
+.bottom { display: flex; align-items: flex-end; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
+.scores { display: flex; gap: clamp(.4rem, 1.5vw, 1.4rem); flex-wrap: wrap; }
+.score {
+  display: flex; align-items: center; gap: .45rem; padding: .25rem 1rem .25rem .45rem; border-radius: 999px;
+  background: var(--glass); border: 3px solid transparent; font-size: clamp(1.3rem, 3vw, 2.6rem); font-weight: 800;
+  font-variant-numeric: tabular-nums; transition: opacity .3s, transform .2s; opacity: .35;
+}
+.score.on { opacity: 1; border-color: var(--c); }
+.score .face { font-size: 1.2em; line-height: 1; }
+.score.bump { transform: scale(1.18); }
+.bucket { display: flex; flex-direction: column; align-items: center; gap: .3rem; }
+.bucket-label { font-family: var(--display); font-size: clamp(1rem, 2vw, 1.6rem); color: var(--slime); }
+.pail {
+  position: relative; width: clamp(110px, 14vw, 190px); aspect-ratio: 1 / .9; max-width: 100%;
+  border-radius: 18% 18% 40% 40%; background: rgba(0,0,0,.35); border: 5px solid var(--candy); overflow: hidden;
+}
+.pail-fill { position: absolute; left: 0; right: 0; bottom: 0; height: 0%; background: linear-gradient(180deg, #ffb35c, var(--candy)); transition: height .35s cubic-bezier(.3, 1.6, .5, 1); }
+.pail-face { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: clamp(2.4rem, 5vw, 4rem); }
+.pail.full { animation: wiggle .4s ease-in-out 4; }
+@keyframes wiggle { 0%, 100% { transform: rotate(0); } 25% { transform: rotate(-10deg); } 75% { transform: rotate(10deg); } }
+.start {
+  position: fixed; inset: 0; z-index: 5; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1.2rem;
+  background: rgba(27, 15, 51, .6); text-align: center; pointer-events: auto;
+}
+.start button { font-size: clamp(2rem, 5vw, 3.5rem); font-weight: 800; padding: .5rem 2.4rem; border-radius: 999px; border: 0; background: var(--candy); color: var(--ink); box-shadow: 0 8px 0 rgba(0,0,0,.4); }
+.start p { margin: 0; font-size: clamp(1rem, 2vw, 1.4rem); max-width: 40ch; }
+.countdown { position: fixed; inset: 0; z-index: 6; display: flex; align-items: center; justify-content: center; pointer-events: none;
+  font-family: var(--display); font-size: clamp(6rem, 28vmin, 18rem); color: var(--slime); text-shadow: 0 10px 0 rgba(0,0,0,.35); }
+.countdown.go { color: var(--candy); }
+.countdown span { animation: zoom .8s ease-out forwards; }
+@keyframes zoom { from { transform: scale(.3); opacity: 0; } 30% { transform: scale(1.1); opacity: 1; } to { transform: scale(1); opacity: 1; } }
+
+/* ---------- Controller ---------- */
+.pad-view { display: flex; flex-direction: column; align-items: center; justify-content: space-between; gap: 1rem; }
+.pad-top { width: 100%; display: flex; justify-content: space-between; align-items: center; gap: .75rem; }
+.status { font-size: 1rem; display: flex; align-items: center; gap: .5rem; min-width: 0; }
+.dot { width: 12px; height: 12px; border-radius: 50%; background: var(--candy); flex: none; }
+.dot.ok { background: var(--slime); }
+.swap { background: var(--glass); border: 1px solid var(--glass-line); border-radius: 999px; padding: .45rem 1rem; font-size: 1rem; font-weight: 700; flex: none; }
+.pickgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; width: 100%; max-width: 520px; margin: auto 0; }
+.pickgrid h2 { grid-column: 1 / -1; margin: 0; text-align: center; font-family: var(--display); font-weight: 400; font-size: 2rem; color: var(--candy); }
+.pick {
+  aspect-ratio: 1; max-width: 100%; border-radius: 32px; border: 0; background: var(--c);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  font-size: 4.5rem; line-height: 1; box-shadow: inset 0 -10px 0 rgba(0,0,0,.2);
+}
+.pick span { font-size: 1.3rem; font-weight: 800; color: var(--ink); margin-top: .3rem; }
+.bigbtn {
+  position: relative; width: min(82vw, 60vh); aspect-ratio: 1; max-width: 100%; border-radius: 50%; border: 0;
+  background: radial-gradient(circle at 35% 30%, rgba(255,255,255,.55), transparent 32%), var(--c);
+  box-shadow: inset 0 -18px 0 rgba(0,0,0,.2), 0 14px 0 rgba(0,0,0,.4);
+  font-size: min(36vw, 26vh); line-height: 1; display: flex; align-items: center; justify-content: center;
+  transition: transform .08s; touch-action: none;
+}
+.bigbtn.press { transform: scale(.92) translateY(6px); box-shadow: inset 0 -8px 0 rgba(0,0,0,.2), 0 6px 0 rgba(0,0,0,.4); }
+.ripple { position: absolute; inset: 0; border-radius: 50%; border: 6px solid var(--text); animation: ripple .5s ease-out forwards; pointer-events: none; }
+@keyframes ripple { from { transform: scale(.9); opacity: .9; } to { transform: scale(1.35); opacity: 0; } }
+.count { font-size: 2.2rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+.note { font-size: .95rem; opacity: .85; text-align: center; max-width: 36ch; margin: 0; }
+@media (prefers-reduced-motion: reduce) {
+  .ripple, .countdown span { animation-duration: .01s; }
+  .cast span, .pail.full { animation: none; }
+  .bigbtn, .score, .pail-fill { transition: none; }
+}
+</style>
+</head>
+<body>
+
+<div class="sky"></div>
+<div class="moon" aria-hidden="true"><i></i><b></b><b></b></div>
+
+<!-- Home -->
+<section class="home" id="home">
+  <div class="cast" aria-hidden="true"><span>🎃</span><span>👻</span><span>🦇</span><span>🦉</span></div>
+  <h1>Bubble Pop<span>Halloween Party</span></h1>
+  <p>Open this page on the TV and tap Big screen. Then scan the QR code on the TV with each phone.</p>
+  <div class="choices">
+    <button class="choice" id="goScreen"><span class="big">📺</span>Big screen<small>The TV or laptop</small></button>
+    <button class="choice" id="goPad"><span class="big">📱</span>Controller<small>One per player</small></button>
+  </div>
+</section>
+
+<!-- Big screen -->
+<canvas id="pool" hidden></canvas>
+<section class="screen-view" id="screen" hidden>
+  <div class="topbar">
+    <div class="brand">Bubble Pop</div>
+    <div class="hint" id="hint">Open this link on a phone and tap Controller</div>
+  </div>
+  <div class="bottom">
+    <div class="scores" id="scores"></div>
+    <div class="bucket">
+      <div class="bucket-label">Candy bucket</div>
+      <div class="pail" id="pail"><div class="pail-fill" id="pailFill"></div><div class="pail-face">🎃</div></div>
+    </div>
+  </div>
+</section>
+<div class="start" id="start" hidden>
+  <button id="startBtn">Start!</button>
+  <p>Starting turns the sound on. You can also tap bubbles here, or press 1–4 on a keyboard.</p>
+</div>
+<div class="countdown" id="countdown" hidden></div>
+
+<!-- Controller -->
+<section class="pad-view" id="pad" hidden>
+  <div class="pad-top">
+    <div class="status"><span class="dot" id="dot"></span><span id="statusText">Looking for the big screen…</span></div>
+    <button class="swap" id="swap" hidden>Change</button>
+  </div>
+  <div class="pickgrid" id="pickgrid">
+    <h2>Who are you?</h2>
+  </div>
+  <button class="bigbtn" id="bigbtn" hidden aria-label="Pop a bubble"></button>
+  <div class="count" id="count" hidden>0</div>
+  <p class="note" id="padNote" hidden>Tap the big button to pop your bubbles on the TV!</p>
+</section>
+
+<script src="peerjs.min.js"></script>
+<script src="qrcode.js"></script>
+<script src="net.js"></script>
+<script>
+(() => {
+  const PLAYERS = [
+    { name: "Pumpkin", face: "🎃", color: "#ff8a1f" },
+    { name: "Ghost",   face: "👻", color: "#c9ecff" },
+    { name: "Bat",     face: "🦇", color: "#b97bff" },
+    { name: "Owl",     face: "🦉", color: "#9cf26b" },
+  ];
+  const CANDY = ["🍬", "🍭", "🍫", "🧁", "🍪"];
+  const MILESTONE = 10;
+  const BUCKET_SIZE = 40;
+  const EMOJI_FONT = '"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif';
+  const $ = (id) => document.getElementById(id);
+
+
+  // ---------- Audio: one silly noise per character ----------
+  let ac = null;
+  function audio() {
+    if (!ac) { try { ac = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { ac = null; } }
+    if (ac && ac.state === "suspended") ac.resume().catch(() => {});
+    return ac;
+  }
+  function tone(type, f0, f1, dur, vol, delay = 0, vibrato = 0) {
+    const a = ac; if (!a) return;
+    const t = a.currentTime + delay;
+    const o = a.createOscillator(), g = a.createGain();
+    o.type = type;
+    o.frequency.setValueAtTime(f0, t);
+    o.frequency.exponentialRampToValueAtTime(f1, t + dur);
+    if (vibrato) {
+      const l = a.createOscillator(), lg = a.createGain();
+      l.frequency.value = 7; lg.gain.value = vibrato; l.connect(lg).connect(o.frequency); l.start(t); l.stop(t + dur + 0.05);
+    }
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(vol, t + 0.015);
+    g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+    o.connect(g).connect(a.destination); o.start(t); o.stop(t + dur + 0.05);
+  }
+  const NOISES = [
+    (v) => { tone("sine", 140, 420, 0.18, v); tone("sine", 420, 260, 0.12, v * 0.6, 0.16); },            // pumpkin: boing
+    (v) => { tone("sine", 620, 260, 0.6, v * 0.8, 0, 25); },                                               // ghost: wooOOoo
+    (v) => { tone("square", 1800, 2600, 0.05, v * 0.25); tone("square", 2000, 2900, 0.05, v * 0.25, 0.08); }, // bat: squeak squeak
+    (v) => { tone("sine", 420, 380, 0.16, v); tone("sine", 360, 320, 0.3, v, 0.2); },                     // owl: hoo hoo
+  ];
+  function pop(p, vol = 0.35) {
+    if (!ac) return;
+    tone("sine", 900, 200, 0.08, vol * 0.7);
+    NOISES[p] && NOISES[p](vol);
+  }
+  function fanfare(mult = 1) {
+    [523, 659, 784, 1047].forEach((f, i) => tone("triangle", f * mult, f * mult, i === 3 ? 0.6 : 0.2, 0.25, i * 0.11));
+  }
+  function partyTune() {
+    const notes = [392, 523, 659, 523, 784, 659, 1047];
+    notes.forEach((f, i) => tone("triangle", f, f, 0.22, 0.25, i * 0.14));
+    tone("sine", 620, 260, 0.9, 0.2, 1.1, 25);
+  }
+
+  // ---------- Home ----------
+  $("goScreen").onclick = () => { $("home").hidden = true; startScreen(); };
+  $("goPad").onclick = () => { $("home").hidden = true; startPad(Net.codeFromUrl()); };
+  if (Net.codeFromUrl()) { $("home").hidden = true; startPad(Net.codeFromUrl()); }
+
+  // =====================================================================
+  // BIG SCREEN
+  // =====================================================================
+  function startScreen() {
+    document.body.classList.add("on-screen");
+    const cv = $("pool"), ctx = cv.getContext("2d");
+    cv.hidden = false; $("screen").hidden = false; $("start").hidden = false;
+    let W = 0, H = 0;
+    function resize() {
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      W = cv.clientWidth; H = cv.clientHeight;
+      cv.width = W * dpr; cv.height = H * dpr;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+    window.addEventListener("resize", resize); resize();
+
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const score = [0, 0, 0, 0];
+    const activeUntil = [0, 0, 0, 0];
+    const padPlayers = new Set();
+    let bubbles = [], bits = [], rings = [], parades = [], banners = [], rain = [];
+    let started = false, bucket = 0, partyUntil = 0, nextCandyAt = 0;
+    const stars = Array.from({ length: 70 }, () => ({ x: Math.random(), y: Math.random() * 0.75, r: 0.6 + Math.random() * 1.8, ph: Math.random() * 6.28 }));
+
+    const chips = PLAYERS.map((p) => {
+      const el = document.createElement("div");
+      el.className = "score"; el.style.setProperty("--c", p.color);
+      el.innerHTML = `<span class="face">${p.face}</span><span class="n">0</span>`;
+      $("scores").appendChild(el); return el;
+    });
+    const isActive = (i, now) => padPlayers.has(i) || activeUntil[i] > now;
+    const active = (now) => [0, 1, 2, 3].filter(i => isActive(i, now));
+
+    const baseR = () => Math.max(36, Math.min(W, H) * 0.08);
+    function spawn(p, y, candy = false) {
+      const r = candy ? baseR() * 1.5 : baseR() * (0.8 + Math.random() * 0.45);
+      bubbles.push({ p, candy, r, x: r + Math.random() * Math.max(1, W - 2 * r), y: y ?? H + r,
+        vy: H / (candy ? 9 : 8 + Math.random() * 4), phase: Math.random() * 6.28, wob: 10 + Math.random() * 18, t: 0 });
+    }
+    function burst(x, y, r, color, big) {
+      const n = big ? 40 : 16;
+      for (let i = 0; i < n; i++) {
+        const a = Math.random() * 6.28, s = (big ? 300 : 160) + Math.random() * 220;
+        bits.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, r: 4 + Math.random() * (big ? 12 : 7), life: 0.7 + Math.random() * 0.4, t: 0, c: color });
+      }
+      rings.push({ x, y, r, t: 0 });
+    }
+    function candyRain(n) {
+      for (let i = 0; i < n; i++) rain.push({ x: Math.random() * W, y: -40 - Math.random() * H * 0.6, vy: 180 + Math.random() * 220, rot: Math.random() * 6, vr: (Math.random() - .5) * 6, e: CANDY[i % CANDY.length], s: 34 + Math.random() * 40 });
+    }
+    function banner(text, color) { banners.push({ text, color, t: 0 }); }
+
+    function addCandy(n) {
+      if (performance.now() < partyUntil) return;
+      bucket = Math.min(BUCKET_SIZE, bucket + n);
+      $("pailFill").style.height = (bucket / BUCKET_SIZE * 100) + "%";
+      if (bucket >= BUCKET_SIZE) {
+        partyUntil = performance.now() + 7000;
+        $("pail").classList.add("full");
+        banner("Candy party!", "#9cf26b");
+        partyTune();
+        candyRain(90);
+        [0, 1, 2, 3].forEach((p, i) => setTimeout(() => parades.push({ p, t: 0, x: W * (0.15 + i * 0.23) }), i * 250));
+        setTimeout(() => { bucket = 0; $("pailFill").style.height = "0%"; $("pail").classList.remove("full"); }, 7000);
+      }
+    }
+
+    function bump(p) {
+      score[p]++;
+      const chip = chips[p]; chip.querySelector(".n").textContent = score[p];
+      chip.classList.add("bump"); setTimeout(() => chip.classList.remove("bump"), 160);
+      if (score[p] % MILESTONE === 0) {
+        parades.push({ p, t: 0, x: W * (0.25 + Math.random() * 0.5), cheer: true });
+        setTimeout(() => fanfare(), 60);
+        for (let k = 0; k < 5; k++) setTimeout(() => burst(Math.random() * W, Math.random() * H * 0.7, baseR(), PLAYERS[p].color, true), k * 120);
+      }
+    }
+
+    function popFor(p, viaBubble) {
+      const now = performance.now();
+      activeUntil[p] = Math.max(activeUntil[p], now + 30000);
+      let target = viaBubble;
+      if (!target) {
+        // a candy bubble goes to whoever taps first
+        target = bubbles.find(b => b.candy && b.y < H - b.r * 0.3);
+        if (!target) {
+          const mine = bubbles.filter(b => !b.candy && b.p === p && b.y < H - b.r * 0.3);
+          if (mine.length) target = mine[Math.floor(Math.random() * mine.length)];
+          else { spawn(p, H * (0.45 + Math.random() * 0.35)); target = bubbles[bubbles.length - 1]; }
+        }
+      }
+      bubbles = bubbles.filter(b => b !== target);
+      const x = target.hx ?? target.x;
+      if (target.candy) {
+        burst(x, target.y, target.r, "#ffd23f", true);
+        candyRain(30);
+        banner(`${PLAYERS[p].face} ${PLAYERS[p].name} got the candy!`, PLAYERS[p].color);
+        fanfare(1.2);
+        bump(p); addCandy(5);
+      } else {
+        burst(x, target.y, target.r, PLAYERS[target.p].color, false);
+        pop(target.p);
+        bump(p); addCandy(1);
+      }
+    }
+
+    cv.addEventListener("pointerdown", (e) => {
+      if (!started) return;
+      const r = cv.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top;
+      for (let i = bubbles.length - 1; i >= 0; i--) {
+        const b = bubbles[i];
+        if (((b.hx ?? b.x) - x) ** 2 + (b.y - y) ** 2 < (b.r * 1.15) ** 2) { popFor(b.candy ? (b.lastP ?? 0) : b.p, b); return; }
+      }
+    });
+    window.addEventListener("keydown", (e) => { const k = parseInt(e.key, 10); if (started && k >= 1 && k <= 4) popFor(k - 1); });
+
+    $("startBtn").onclick = async () => {
+      audio();
+      $("start").hidden = true;
+      try { if (navigator.wakeLock) await navigator.wakeLock.request("screen"); } catch (e) {}
+      try { if (document.documentElement.requestFullscreen) await document.documentElement.requestFullscreen(); } catch (e) {}
+      const cd = $("countdown"); cd.hidden = false;
+      const steps = ["3", "2", "1", "Boo!"];
+      steps.forEach((s, i) => setTimeout(() => {
+        cd.classList.toggle("go", i === 3);
+        cd.innerHTML = `<span>${s}</span>`;
+        if (i < 3) tone("sine", 440, 440, 0.15, 0.25); else NOISES[1](0.4);
+      }, i * 800));
+      setTimeout(() => { cd.hidden = true; started = true; nextCandyAt = performance.now() + 15000; }, steps.length * 800 + 200);
+    };
+
+    function drawEmoji(e, x, y, size) {
+      ctx.font = `${Math.round(size)}px ${EMOJI_FONT}`;
+      ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText(e, x, y);
+    }
+
+    let last = performance.now(), spawnAcc = 0;
+    function frame(now) {
+      const dt = Math.min(0.05, (now - last) / 1000); last = now;
+      const act = active(now);
+      chips.forEach((c, i) => c.classList.toggle("on", isActive(i, now)));
+
+      // spawning
+      const pool = act.length ? act : [0, 1, 2, 3];
+      const perPlayer = !started ? 2 : act.length ? 6 : 3;
+      spawnAcc += dt;
+      if (spawnAcc > (now < partyUntil ? 0.12 : 0.35)) {
+        spawnAcc = 0;
+        const cap = now < partyUntil ? perPlayer * 2 : perPlayer;
+        const order = pool.slice().sort(() => Math.random() - .5);
+        for (const p of order) if (bubbles.filter(b => b.p === p && !b.candy).length < cap) { spawn(p); break; }
+      }
+      if (started && now > nextCandyAt && !bubbles.some(b => b.candy)) {
+        spawn(0, undefined, true);
+        nextCandyAt = now + 18000 + Math.random() * 10000;
+      }
+
+      ctx.clearRect(0, 0, W, H);
+      // stars
+      for (const s of stars) {
+        const a = 0.35 + 0.35 * Math.sin(now / 600 + s.ph);
+        ctx.globalAlpha = reduce ? 0.6 : a; ctx.beginPath(); ctx.arc(s.x * W, s.y * H, s.r, 0, 6.2832); ctx.fillStyle = "#fff6e6"; ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+
+      // bubbles
+      for (const b of bubbles) {
+        b.t += dt; b.y -= b.vy * dt;
+        const x = b.x + (reduce ? 0 : Math.sin(b.t * 1.6 + b.phase) * b.wob);
+        b.hx = x;
+        const col = b.candy ? `hsl(${(now / 6) % 360} 95% 65%)` : PLAYERS[b.p].color;
+        const g = ctx.createRadialGradient(x - b.r * .3, b.y - b.r * .35, b.r * .1, x, b.y, b.r);
+        g.addColorStop(0, "rgba(255,255,255,0.5)");
+        g.addColorStop(0.4, b.candy ? "rgba(255,210,63,0.45)" : col + "44");
+        g.addColorStop(1, b.candy ? "rgba(255,138,31,0.85)" : col + "bb");
+        ctx.beginPath(); ctx.arc(x, b.y, b.r, 0, 6.2832); ctx.fillStyle = g; ctx.fill();
+        ctx.lineWidth = Math.max(2, b.r * (b.candy ? 0.1 : 0.06)); ctx.strokeStyle = b.candy ? col : "rgba(255,255,255,0.7)"; ctx.stroke();
+        ctx.beginPath(); ctx.ellipse(x - b.r * .38, b.y - b.r * .42, b.r * .22, b.r * .12, -0.6, 0, 6.2832);
+        ctx.fillStyle = "rgba(255,255,255,0.85)"; ctx.fill();
+        const wig = reduce ? 0 : Math.sin(b.t * 5 + b.phase) * 0.15;
+        ctx.save(); ctx.translate(x, b.y + b.r * 0.05); ctx.rotate(wig);
+        drawEmoji(b.candy ? "🍬" : PLAYERS[b.p].face, 0, 0, b.r * 0.95);
+        ctx.restore();
+      }
+      bubbles = bubbles.filter(b => b.y > -b.r * 1.2);
+
+      for (const r of rings) {
+        r.t += dt; const k = r.t / 0.45;
+        ctx.beginPath(); ctx.arc(r.x, r.y, r.r * (1 + k * 0.9), 0, 6.2832);
+        ctx.strokeStyle = `rgba(255,246,230,${Math.max(0, 0.9 - k)})`; ctx.lineWidth = 6 * (1 - k) + 1; ctx.stroke();
+      }
+      rings = rings.filter(r => r.t < 0.45);
+      for (const p of bits) {
+        p.t += dt; p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 420 * dt; p.vx *= 0.98;
+        const a = Math.max(0, 1 - p.t / p.life);
+        ctx.globalAlpha = a; ctx.beginPath(); ctx.arc(p.x, p.y, p.r * (0.5 + a * 0.5), 0, 6.2832); ctx.fillStyle = p.c; ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+      bits = bits.filter(p => p.t < p.life);
+
+      // falling candy
+      for (const c of rain) {
+        c.y += c.vy * dt; c.rot += c.vr * dt;
+        ctx.save(); ctx.translate(c.x, c.y); ctx.rotate(reduce ? 0 : c.rot); drawEmoji(c.e, 0, 0, c.s); ctx.restore();
+      }
+      rain = rain.filter(c => c.y < H + 60);
+
+      // big characters jump up and dance
+      for (const pr of parades) {
+        pr.t += dt; const k = pr.t / 2.4;
+        const rise = k < 0.3 ? 1 - Math.pow(1 - k / 0.3, 3) : k > 0.8 ? 1 - (k - 0.8) / 0.2 : 1;
+        const size = Math.min(W, H) * (pr.cheer ? 0.38 : 0.26);
+        const y = H + size - rise * (H * 0.5 + size * 0.5);
+        ctx.save(); ctx.translate(pr.x, y); ctx.rotate(reduce ? 0 : Math.sin(pr.t * 8) * 0.18);
+        drawEmoji(PLAYERS[pr.p].face, 0, 0, size); ctx.restore();
+        if (pr.cheer) {
+          ctx.font = `${Math.round(size * 0.22)}px Griffy, "Baloo 2", cursive`;
+          ctx.fillStyle = "#fff6e6"; ctx.textAlign = "center"; ctx.globalAlpha = rise;
+          ctx.fillText(`Yay, ${PLAYERS[pr.p].name}!`, pr.x, y - size * 0.62); ctx.globalAlpha = 1;
+        }
+      }
+      parades = parades.filter(pr => pr.t < 2.4);
+
+      // banners
+      for (const bn of banners) {
+        bn.t += dt; const a = bn.t < 0.3 ? bn.t / 0.3 : bn.t > 2.2 ? Math.max(0, 1 - (bn.t - 2.2) / 0.4) : 1;
+        const size = Math.min(W * 0.07, H * 0.11);
+        ctx.font = `${Math.round(size)}px Griffy, "Baloo 2", cursive`;
+        ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.globalAlpha = a;
+        ctx.lineWidth = size * 0.12; ctx.strokeStyle = "#1b0f33"; ctx.strokeText(bn.text, W / 2, H * 0.3);
+        ctx.fillStyle = bn.color; ctx.fillText(bn.text, W / 2, H * 0.3); ctx.globalAlpha = 1;
+      }
+      banners = banners.filter(bn => bn.t < 2.6);
+
+      requestAnimationFrame(frame);
+    }
+    requestAnimationFrame(frame);
+
+    // ---------- phones as controllers ----------
+    const padOf = new Map();
+    function syncPads() { padPlayers.clear(); padOf.forEach((p) => { if (p >= 0) padPlayers.add(p); }); Net.setCount(padOf.size); }
+    $("hint").textContent = "Getting ready for phones…";
+    Net.host("bubble", {
+      onReady: (code) => { Net.joinCard(code); $("hint").hidden = true; },
+      onJoin: (c) => { padOf.set(c, -1); syncPads(); },
+      onLeave: (c) => { padOf.delete(c); syncPads(); },
+      onMessage: (m, c) => {
+        const p = Number(m.p); if (!(p >= 0 && p < 4)) return;
+        padOf.set(c, p); syncPads();
+        if (m.t === "tap" && started) popFor(p);
+      },
+      onProblem: () => { $("hint").hidden = false; $("hint").textContent = "Phones can't connect right now. Check the internet connection and reload."; },
+    });
+  }
+
+  // =====================================================================
+  // CONTROLLER
+  // =====================================================================
+  function startPad(code) {
+    if (!code) { Net.askCode((c) => startPad(c)); return; }
+    $("pad").hidden = false;
+    let me = -1, taps = 0, link = null;
+    try { const s = localStorage.getItem("bubblepop-halloween"); if (s !== null) me = Number(s); } catch (e) {}
+
+    const grid = $("pickgrid");
+    PLAYERS.forEach((p, i) => {
+      const b = document.createElement("button");
+      b.className = "pick"; b.id = "pick" + i; b.style.setProperty("--c", p.color);
+      b.innerHTML = `${p.face}<span>${p.name}</span>`;
+      b.onclick = () => { audio(); pop(i, 0.3); choose(i); };
+      grid.appendChild(b);
+    });
+
+    function send(t) { if (link && me >= 0) link.send({ t: t || "hello", p: me }); }
+    function choose(i) {
+      me = i;
+      try { localStorage.setItem("bubblepop-halloween", String(i)); } catch (e) {}
+      const p = PLAYERS[i];
+      grid.hidden = true;
+      const btn = $("bigbtn"); btn.hidden = false; btn.textContent = p.face; btn.style.setProperty("--c", p.color);
+      $("count").hidden = false; $("padNote").hidden = false; $("swap").hidden = false;
+      send();
+    }
+    function showPicker() {
+      grid.hidden = false; $("bigbtn").hidden = true; $("count").hidden = true; $("padNote").hidden = true; $("swap").hidden = true;
+    }
+    $("swap").onclick = showPicker;
+    if (me >= 0 && me < 4) choose(me); else showPicker();
+
+    const btn = $("bigbtn");
+    btn.addEventListener("pointerdown", (e) => {
+      e.preventDefault();
+      audio();
+      taps++; $("count").textContent = taps;
+      send("tap");
+      pop(me, 0.15);
+      try { navigator.vibrate && navigator.vibrate(25); } catch (err) {}
+      btn.classList.add("press");
+      const r = document.createElement("span"); r.className = "ripple"; btn.appendChild(r);
+      setTimeout(() => r.remove(), 520);
+    });
+    const up = () => btn.classList.remove("press");
+    btn.addEventListener("pointerup", up); btn.addEventListener("pointercancel", up); btn.addEventListener("pointerleave", up);
+
+    link = Net.join("bubble", code, {
+      onStatus: (s) => {
+        const ok = s === "open";
+        $("dot").classList.toggle("ok", ok);
+        $("statusText").textContent = ok ? "Connected to the big screen" : s === "notfound" ? `Looking for game ${code}… Is the TV page open?` : "Connecting to the big screen…";
+        if (ok) send();
+      },
+    });
+  }
+})();
+</script>
+
+</body>
+</html>
