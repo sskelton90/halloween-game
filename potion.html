@@ -1,0 +1,720 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<script>
+/* If something fails to load (an old cached file, a dropped connection), say so instead of showing a blank screen. */
+(function () {
+  var shown = false;
+  function show(msg) {
+    if (shown) return; shown = true;
+    var d = document.createElement("div");
+    d.setAttribute("style", "position:fixed;inset:0;z-index:99;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:24px;text-align:center;background:#1b0f33;color:#fff6e6;font:500 18px system-ui,sans-serif");
+    d.innerHTML = '<div style="font-size:56px">🎃</div><div style="font:800 26px system-ui,sans-serif">Oops, part of the game didn\'t load</div><div style="max-width:30em;opacity:.85">Reload to try again. If it keeps happening, check the internet connection.</div><button style="font:800 22px system-ui,sans-serif;padding:10px 32px;border-radius:999px;border:0;background:#ff8a1f;color:#1b0f33">Reload</button><div style="font-size:13px;opacity:.55;max-width:40em;word-break:break-word"></div>';
+    d.lastChild.textContent = String(msg || "");
+    d.querySelector("button").onclick = function () { location.reload(); };
+    (document.body || document.documentElement).appendChild(d);
+  }
+  // Only step in when the screen would otherwise be blank: a missing file, or a crash that left nothing showing.
+  function blank() {
+    var els = document.querySelectorAll("#home, #screen, #pad, .games");
+    for (var i = 0; i < els.length; i++) if (!els[i].hidden) return false;
+    return true;
+  }
+  window.addEventListener("error", function (e) {
+    var t = e.target;
+    if (t && t.tagName === "SCRIPT") { show("Couldn't load " + (t.getAttribute("src") || "a script")); return; }
+    var msg = e.message;
+    setTimeout(function () { if (blank()) show(msg); }, 0);
+  }, true);
+})();
+</script>
+<style>[hidden]{display:none!important}body{margin:0}</style>
+<title>Potion Pot</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&family=Griffy&display=swap">
+<style>
+/* Layout: a witchy kitchen at night on the TV, one bubbling cauldron per child with their character beside it, and a spellbook of secret potions along the bottom. */
+:root {
+  --night: #1b0f33;
+  --dusk: #3a1d63;
+  --glow: #6b3fa0;
+  --moon: #fff3b8;
+  --candy: #ff8a1f;
+  --slime: #9cf26b;
+  --ink: #1b0f33;
+  --text: #fff6e6;
+  --pot: #1a1424;
+  --brew: #3f6b3a;
+  --glass: rgba(255, 246, 230, 0.12);
+  --glass-line: rgba(255, 246, 230, 0.32);
+  --display: "Griffy", "Baloo 2", "Comic Sans MS", cursive;
+  --body: "Baloo 2", "Arial Rounded MT Bold", "Trebuchet MS", system-ui, sans-serif;
+  color-scheme: dark;
+}
+html, body { height: 100%; }
+body {
+  background: var(--night); color: var(--text); font-family: var(--body);
+  overflow: hidden; -webkit-user-select: none; user-select: none;
+  -webkit-tap-highlight-color: transparent; touch-action: manipulation;
+}
+.sky { position: fixed; inset: 0; z-index: 0;
+  background:
+    radial-gradient(60% 40% at 50% 100%, rgba(255, 138, 31, .18), transparent 70%),
+    linear-gradient(180deg, var(--night) 0%, var(--dusk) 65%, #2a1748 100%); }
+.moon {
+  position: fixed; z-index: 0; top: calc(6vh + env(safe-area-inset-top, 0px)); right: max(6vw, env(safe-area-inset-right, 0px));
+  width: min(18vmin, 180px); aspect-ratio: 1; max-width: 100%; border-radius: 50%;
+  background: radial-gradient(circle at 38% 35%, #fffbe0, var(--moon) 55%, #f3d97a);
+  box-shadow: 0 0 60px 20px rgba(255, 243, 184, 0.22);
+}
+.moon::before, .moon::after { content: ""; position: absolute; top: 38%; width: 10%; height: 14%; border-radius: 50%; background: #6b5a2a; }
+.moon::before { left: 32%; } .moon::after { right: 32%; }
+.moon i { position: absolute; left: 30%; right: 30%; top: 56%; height: 16%; border-bottom: .5vmin solid #6b5a2a; border-radius: 0 0 50% 50%; }
+body.on-pad .moon, body.on-screen .moon { display: none; }
+.view {
+  position: fixed; inset: 0; z-index: 1;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: calc(14px + env(safe-area-inset-top, 0px)) calc(14px + env(safe-area-inset-bottom, 0px));
+}
+button { font-family: var(--body); color: inherit; cursor: pointer; }
+button:focus-visible { outline: 4px solid var(--moon); outline-offset: 3px; }
+
+/* ---------- Home ---------- */
+.home { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1.4rem; text-align: center; }
+.home h1 { margin: 0; font-family: var(--display); font-weight: 400; font-size: clamp(2.8rem, 11vw, 7rem); line-height: .95; color: var(--candy); text-wrap: balance; text-shadow: 0 6px 0 rgba(0,0,0,.35); }
+.home h1 span { display: block; color: var(--slime); font-size: .5em; }
+.home p { margin: 0; max-width: 34ch; font-size: 1.15rem; opacity: .9; }
+.cast { font-size: clamp(2.2rem, 8vw, 3.6rem); display: flex; gap: .6rem; }
+.choices { display: flex; flex-wrap: wrap; gap: 1rem; justify-content: center; width: 100%; max-width: 640px; }
+.choice {
+  flex: 1 1 240px; min-height: 130px; border-radius: 28px; border: 2px solid var(--glass-line);
+  background: var(--glass); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .2rem;
+  font-size: 1.6rem; font-weight: 800; transition: transform .12s;
+}
+.choice small { font-size: 1rem; font-weight: 500; opacity: .8; }
+.choice .big { font-size: 2.8rem; line-height: 1; }
+.choice:active { transform: scale(.96); }
+
+/* ---------- Big screen ---------- */
+.screen { display: flex; flex-direction: column; pointer-events: none; gap: 1vh; }
+.topbar { width: 100%; box-sizing: border-box; display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; flex-wrap: wrap; padding-right: min(22vmin, 200px); }
+.brand { font-family: var(--display); font-size: clamp(1.6rem, 3.4vw, 2.8rem); color: var(--candy); }
+.hint { font-size: clamp(.9rem, 1.6vw, 1.2rem); background: var(--glass); border: 1px solid var(--glass-line); border-radius: 999px; padding: .4rem 1rem; max-width: 100%; }
+.kitchen { flex: 1; min-height: 0; display: flex; align-items: flex-end; justify-content: center; gap: 3vw; padding-bottom: 1vh; }
+.station { position: relative; flex: 0 1 28vw; min-width: 0; display: flex; flex-direction: column; align-items: center; }
+.potname { position: absolute; z-index: 4; left: 50%; bottom: 100%; transform: translateX(-50%); width: max-content; max-width: 30vw; text-align: center;
+  background: var(--text); color: var(--ink); font-weight: 800; font-size: clamp(1rem, 2.1vw, 1.8rem); line-height: 1.1; padding: .4rem .9rem; border-radius: 1.6vh;
+  border: .35vh solid var(--ink); box-shadow: 0 .6vh 0 rgba(0,0,0,.35); text-wrap: balance; animation: pop .35s cubic-bezier(.3, 1.6, .5, 1); }
+.potname.secret { background: #ffd23f; }
+@keyframes pop { from { transform: translateX(-50%) scale(.4); opacity: 0; } }
+.char { position: relative; height: 18vh; width: 18vh; z-index: 2; margin-bottom: -4vh; }
+.char > div, .char div { position: absolute; inset: 0; }
+.char .emoji { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); font-size: 15vh; line-height: 1; }
+.char .wear { position: absolute; left: 50%; font-size: 7vh; line-height: 1; transform: translate(-50%, 0); display: none; }
+.char .wear.hat { top: -16%; } .char .wear.pants { bottom: -4%; }
+.char .wear.on { display: block; }
+.char .wear.pants.onhead { bottom: auto; top: -10%; }
+.char .move { transition: transform .5s cubic-bezier(.3, 1.3, .5, 1); }
+.char .size { transition: transform .5s cubic-bezier(.3, 1.4, .5, 1); transform-origin: 50% 90%; }
+/* move */
+.m-hop { animation: m-hop .55s ease-in-out infinite; }
+@keyframes m-hop { 0%, 100% { transform: translateY(0); } 45% { transform: translateY(-9vh); } }
+.m-float { animation: m-float 2.2s ease-in-out infinite; }
+@keyframes m-float { 0%, 100% { transform: translateY(-14vh); } 50% { transform: translateY(-20vh) rotate(4deg); } }
+.m-bounce { animation: m-bounce .4s ease-in-out infinite; }
+@keyframes m-bounce { 0%, 100% { transform: translateY(0) scale(1, 1); } 50% { transform: translateY(-4vh) scale(.95, 1.05); } }
+.m-away { animation: m-away 3.5s ease-in-out forwards; }
+@keyframes m-away { 0% { transform: translateY(0); } 45%, 55% { transform: translateY(-90vh); } 100% { transform: translateY(0); } }
+/* size */
+.s-big { transform: scale(1.55); } .s-huge { transform: scale(2.1); }
+/* wiggles */
+.w-shiver { animation: w-shiver .1s linear infinite; }
+@keyframes w-shiver { 50% { transform: translateX(.6vh); } }
+.w-rattle { animation: w-rattle .16s linear infinite; }
+@keyframes w-rattle { 25% { transform: rotate(-7deg); } 75% { transform: rotate(7deg); } }
+.w-spin { animation: w-spin 1.4s linear infinite; }
+@keyframes w-spin { to { transform: rotate(360deg); } }
+.w-wobble { animation: w-wobble 1s ease-in-out infinite; }
+@keyframes w-wobble { 0%, 100% { transform: rotate(-10deg) translateX(-1vh); } 50% { transform: rotate(10deg) translateX(1vh); } }
+.w-wiggle { animation: w-wiggle .5s ease-in-out infinite; }
+@keyframes w-wiggle { 0%, 100% { transform: skewX(-14deg) scaleY(.95); } 50% { transform: skewX(14deg) scaleY(1.05); } }
+/* colours (static filters, cheap) */
+.t-green { filter: sepia(1) saturate(4) hue-rotate(55deg); }
+.t-frozen { filter: saturate(.35) brightness(1.3) drop-shadow(0 0 1.2vh #9fe3ff); }
+.t-hot { filter: sepia(1) saturate(6) hue-rotate(-28deg); }
+.t-glow { filter: brightness(1.15) drop-shadow(0 0 1.4vh #ffd23f); }
+.t-stinky { filter: sepia(1) saturate(2.5) hue-rotate(35deg) brightness(.85); }
+.t-rainbow { animation: t-rainbow 1.6s steps(8) infinite; }
+@keyframes t-rainbow { from { filter: hue-rotate(0deg) saturate(1.6); } to { filter: hue-rotate(360deg) saturate(1.6); } }
+/* the cauldron */
+.pot { position: relative; width: min(24vh, 22vw); height: min(17vh, 16vw); z-index: 1; }
+.pot .body { position: absolute; inset: 14% 0 0; background: radial-gradient(circle at 35% 30%, #3a3050, var(--pot) 60%); border-radius: 40% 40% 48% 48% / 30% 30% 70% 70%;
+  box-shadow: inset 0 -1.5vh 0 rgba(0,0,0,.4), 0 0 0 .5vh var(--c); }
+.pot .liquid { position: absolute; left: 6%; right: 6%; top: 8%; height: 22%; border-radius: 50%; background: var(--liquid, var(--brew));
+  box-shadow: 0 0 2.5vh var(--liquid, var(--brew)); transition: background .5s, box-shadow .5s; }
+.pot.boil .liquid { animation: boil .18s ease-in-out infinite; }
+@keyframes boil { 50% { transform: scaleY(1.25) translateY(-.6vh); } }
+.pot .bub { position: absolute; top: 4%; width: 1.6vh; height: 1.6vh; border-radius: 50%; background: var(--liquid, var(--brew)); filter: brightness(1.5); opacity: 0; animation: bub 1.8s ease-in infinite; }
+.pot .bub:nth-child(3) { left: 30%; animation-delay: .4s; } .pot .bub:nth-child(4) { left: 55%; animation-delay: 1s; } .pot .bub:nth-child(5) { left: 70%; animation-delay: 1.4s; }
+@keyframes bub { 0% { transform: translateY(0) scale(.5); opacity: 0; } 30% { opacity: .9; } 100% { transform: translateY(-5vh) scale(1.2); opacity: 0; } }
+.pot .in { position: absolute; left: 50%; top: -12%; transform: translateX(-50%); display: flex; gap: .5vh; font-size: 3.6vh; z-index: 3; }
+.fire { font-size: 6vh; line-height: 1; margin-top: -1.4vh; filter: drop-shadow(0 0 1.4vh rgba(255, 138, 31, .7)); }
+.label { font-weight: 800; font-size: clamp(1rem, 1.9vw, 1.6rem); color: var(--c); text-shadow: 0 2px 0 rgba(0,0,0,.5); }
+.poof { position: absolute; z-index: 5; left: 50%; top: 40%; font-size: 14vh; transform: translate(-50%, -50%); pointer-events: none; animation: poof .7s ease-out forwards; }
+@keyframes poof { from { transform: translate(-50%, -50%) scale(.3); opacity: 1; } to { transform: translate(-50%, -60%) scale(1.8); opacity: 0; } }
+.wx { position: absolute; z-index: 3; pointer-events: none; font-size: 4.5vh; line-height: 1; top: 0; }
+.wx.up { top: auto; bottom: 30%; }
+.wx.side { top: 30%; }
+.wx.down { animation: wx-down 2.6s linear forwards; }
+.wx.up { animation: wx-up 2.6s ease-out forwards; }
+.wx.side { animation: wx-side 1.4s ease-in forwards; }
+@keyframes wx-down { from { transform: translateY(-14vh) rotate(0); opacity: 1; } 85% { opacity: 1; } to { transform: translateY(26vh) rotate(260deg); opacity: 0; } }
+@keyframes wx-up { from { transform: translateY(0) scale(.6); opacity: 1; } to { transform: translateY(-38vh) scale(1.1); opacity: 0; } }
+@keyframes wx-side { from { transform: translateX(0) scale(.6); opacity: 1; } to { transform: translateX(var(--dx, 40vw)) scale(1.4); opacity: 0; } }
+.flyoff { position: fixed; z-index: 6; left: 0; top: 0; font-size: 8vh; line-height: 1; pointer-events: none; }
+.station.disco::before { content: ""; position: absolute; inset: -4vh -2vw -2vh; z-index: 0; border-radius: 3vh; animation: disco .5s steps(1) infinite; opacity: .45; }
+@keyframes disco { 0% { background: #ff5fa2; } 25% { background: #4fc3f7; } 50% { background: #9cf26b; } 75% { background: #ffd23f; } }
+.book { display: flex; align-items: center; justify-content: center; gap: .6vh 1.5vw; flex-wrap: wrap; padding: .6vh 1vw; margin-inline: auto; max-width: 100%; box-sizing: border-box; min-width: 0;
+  background: rgba(0,0,0,.3); border: .3vh solid var(--glass-line); border-radius: 2vh; }
+.book .title { font-weight: 800; font-size: clamp(.8rem, 1.6vw, 1.4rem); text-align: center; text-wrap: balance; }
+.book .bottles { display: flex; flex-wrap: wrap; justify-content: center; gap: .4vh .5vw; font-size: min(3.6vh, 4.2vw); line-height: 1.1; max-width: 100%; min-width: 0; }
+.book .bottles span { opacity: .3; filter: grayscale(1); }
+.book .bottles span.found { opacity: 1; filter: none; }
+.book .bottles span.new { animation: pop2 .6s ease-out 3; }
+@keyframes pop2 { 50% { transform: scale(1.6); } }
+.newsecret { position: fixed; z-index: 6; left: 50%; top: 24vh; transform: translateX(-50%); pointer-events: none; text-align: center; width: max-content; max-width: 70vw;
+  font-family: var(--display); font-size: clamp(1.8rem, 4vw, 3.6rem); line-height: 1.05; color: #ffd23f; text-shadow: 0 .6vh 0 rgba(0,0,0,.6); animation: rise 3.2s ease-out forwards; text-wrap: balance; }
+@keyframes rise { 0% { opacity: 0; transform: translate(-50%, 4vh) scale(.6); } 15% { opacity: 1; transform: translate(-50%, 0) scale(1.05); } 80% { opacity: 1; } 100% { opacity: 0; transform: translate(-50%, -3vh); } }
+.start { position: fixed; inset: 0; z-index: 7; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1.2rem;
+  background: rgba(27, 15, 51, .6); text-align: center; pointer-events: auto; padding-inline: 16px; }
+.start button { font-size: clamp(2rem, 5vw, 3.5rem); font-weight: 800; padding: .5rem 2.4rem; border-radius: 999px; border: 0; background: var(--candy); color: var(--ink); box-shadow: 0 8px 0 rgba(0,0,0,.4); }
+.start p { margin: 0; font-size: clamp(1rem, 2vw, 1.4rem); max-width: 46ch; }
+
+/* ---------- Controller ---------- */
+.pad { display: flex; flex-direction: column; align-items: center; gap: .8rem; height: 100dvh; box-sizing: border-box; }
+.pad-top { width: 100%; display: flex; justify-content: space-between; align-items: center; gap: .6rem; }
+.status { font-size: .95rem; display: flex; align-items: center; gap: .45rem; min-width: 0; flex: 1; }
+.dot { width: 12px; height: 12px; border-radius: 50%; background: var(--candy); flex: none; }
+.dot.ok { background: var(--slime); }
+.small-btn { background: var(--glass); border: 1px solid var(--glass-line); border-radius: 999px; padding: .4rem 1rem; font-size: .95rem; font-weight: 700; flex: none; }
+.who { flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 1rem; width: 100%; }
+.who h2 { margin: 0; text-align: center; font-family: var(--display); font-weight: 400; font-size: 2.2rem; color: var(--candy); }
+.whogrid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; width: min(520px, 100%, calc(100dvh - 12rem)); margin-inline: auto; }
+.pick { aspect-ratio: 1; max-width: 100%; border-radius: 32px; border: 0; background: var(--c);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 4.2rem; line-height: 1; box-shadow: inset 0 -10px 0 rgba(0,0,0,.2); }
+.pick span { font-size: 1.3rem; font-weight: 800; color: var(--ink); margin-top: .3rem; }
+.play { flex: 1; min-height: 0; width: 100%; display: flex; flex-direction: column; align-items: center; gap: .7rem; }
+.pad-title { margin: 0; font-family: var(--display); font-weight: 400; font-size: clamp(1.6rem, 7.5vw, 2.6rem); line-height: 1.05; color: var(--candy); text-align: center; text-wrap: balance; min-height: 2.1em; display: flex; align-items: center; }
+.pad-title.secret { color: #ffd23f; }
+.slots { display: flex; align-items: center; gap: .6rem; font-size: 2rem; font-weight: 800; }
+.slot { width: 3.6rem; height: 3.6rem; border-radius: 50%; border: 3px dashed var(--glass-line); display: flex; align-items: center; justify-content: center; font-size: 2.2rem; background: rgba(0,0,0,.25); }
+.slot.full { border-style: solid; border-color: var(--slime); }
+.ings { flex: 1; min-height: 0; width: min(100%, 640px); display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); grid-auto-rows: minmax(0, 1fr); gap: .6rem; }
+.ing { border: 0; border-radius: 22px; background: var(--glass); box-shadow: inset 0 -6px 0 rgba(0,0,0,.25); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .1rem;
+  font-size: clamp(2rem, 9vw, 3.2rem); line-height: 1; min-height: 0; padding: .3rem; }
+.ing span { font-size: clamp(.8rem, 3.4vw, 1rem); font-weight: 800; }
+.ing:active { transform: scale(.93); }
+.ings.busy .ing { opacity: .35; }
+.bookbar { width: min(100%, 640px); display: flex; align-items: center; gap: .6rem; padding: .5rem .9rem; border-radius: 18px; background: var(--glass); border: 2px solid var(--glass-line); }
+.bookbar .found { flex: 1; min-width: 0; font-weight: 800; font-size: 1rem; }
+.bookbar .found small { display: block; font-weight: 500; font-size: 1.15rem; letter-spacing: .1em; white-space: nowrap; overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+.bookbar .found small::-webkit-scrollbar { display: none; }
+.hintbtn { border: 0; border-radius: 999px; background: #ffd23f; color: var(--ink); font-weight: 800; font-size: 1.05rem; padding: .5rem 1rem; flex: none; }
+.hintbox { font-size: 1.8rem; font-weight: 800; flex: none; }
+@media (orientation: landscape) {
+  .whogrid { grid-template-columns: repeat(4, minmax(0, 1fr)); width: min(900px, 100%, calc((100dvh - 10rem) * 4 + 3rem)); }
+  .ings { grid-template-columns: repeat(6, minmax(0, 1fr)); width: min(100%, 980px); }
+  .ing { font-size: clamp(1.8rem, 7dvh, 3.2rem); }
+}
+@media (orientation: landscape) and (max-height: 500px) {
+  .pick { font-size: 2.6rem; border-radius: 22px; }
+  .pick span { font-size: 1rem; }
+  .who h2 { font-size: 1.5rem; }
+  .pad-title { font-size: 1.4rem; min-height: 0; }
+  .slot { width: 2.6rem; height: 2.6rem; font-size: 1.6rem; }
+  .bookbar { padding: .3rem .8rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .m-hop, .m-float, .m-bounce, .w-shiver, .w-rattle, .w-spin, .w-wobble, .w-wiggle, .t-rainbow, .pot .bub, .pot.boil .liquid, .station.disco::before { animation: none !important; }
+  .m-float { transform: translateY(-14vh); }
+  .wx, .poof, .newsecret, .potname { animation-duration: .01s !important; }
+}
+</style>
+</head>
+<body>
+
+<div class="sky"></div>
+<div class="moon" aria-hidden="true"><i></i></div>
+
+<section class="view home" id="home">
+  <div class="cast" aria-hidden="true"><span>🐸</span><span>🧪</span><span>🩲</span><span>🎩</span></div>
+  <h1>Potion<span>Pot</span></h1>
+  <p>Open this page on the TV and tap Big screen. Then scan the QR code on the TV with each phone.</p>
+  <div class="choices">
+    <button class="choice" id="goScreen"><span class="big">📺</span>Big screen<small>The TV or laptop</small></button>
+    <button class="choice" id="goPad"><span class="big">📱</span>Controller<small>One per potion maker</small></button>
+  </div>
+</section>
+
+<section class="view screen" id="screen" hidden>
+  <div class="topbar">
+    <div class="brand">Potion Pot</div>
+    <div class="hint" id="hint">Open this link on a phone and tap Controller</div>
+  </div>
+  <div class="kitchen" id="kitchen"></div>
+  <div class="book" id="book"><span class="title" id="bookTitle"></span><span class="bottles" id="bottles"></span></div>
+</section>
+<div class="start" id="start" hidden>
+  <button id="startBtn">Start!</button>
+  <p>Starting turns the sound on. Without phones: press 1–4 to drop a random ingredient into that cauldron.</p>
+</div>
+
+<section class="view pad" id="pad" hidden>
+  <div class="pad-top">
+    <div class="status"><span class="dot" id="dot"></span><span id="statusText">Looking for the TV…</span></div>
+    <button class="small-btn" id="swap" hidden>Change</button>
+  </div>
+  <div class="who" id="who">
+    <h2>Who are you?</h2>
+    <div class="whogrid" id="whogrid"></div>
+  </div>
+  <div class="play" id="play" hidden>
+    <h2 class="pad-title" id="padTitle">Pick two things!</h2>
+    <div class="slots"><span class="slot" id="slot0"></span>+<span class="slot" id="slot1"></span></div>
+    <div class="ings" id="ings"></div>
+    <div class="bookbar">
+      <div class="found" id="bookFound">Secret potions: 0</div>
+      <span class="hintbox" id="hintBox" hidden></span>
+      <button class="hintbtn" id="hintBtn">💡 Hint</button>
+    </div>
+  </div>
+</section>
+
+<script src="peerjs.min.js?v=7e60515a"></script>
+<script src="qrcode.js?v=4c79be16"></script>
+<script src="net.js?v=2ccb96a3"></script>
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+
+  const PLAYERS = [
+    { name: "Pumpkin", face: "🎃", color: "#ff8a1f" },
+    { name: "Ghost",   face: "👻", color: "#c9ecff" },
+    { name: "Bat",     face: "🦇", color: "#b97bff" },
+    { name: "Owl",     face: "🦉", color: "#9cf26b" },
+  ];
+  const okPlayer = (p) => Number.isInteger(p) && p >= 0 && p < PLAYERS.length;
+
+  // ---------- Ingredients: each one adds its own effect, so every pair is different ----------
+  const ING = {
+    frog:     { e: "🐸", name: "Frog",     adj: "Hoppy",   col: "#57d07a", fx: { move: "hop", tint: "green" } },
+    ice:      { e: "🧊", name: "Ice",      adj: "Frosty",  col: "#9fe3ff", fx: { tint: "frozen", wiggle: "shiver", wx: ["❄️", "down"] } },
+    balloon:  { e: "🎈", name: "Balloon",  adj: "Floaty",  col: "#ff5f7e", fx: { move: "float", wx: ["🎈", "up"] } },
+    chilli:   { e: "🌶️", name: "Chilli",  adj: "Spicy",   col: "#ff3b1f", fx: { tint: "hot", wiggle: "rattle", wx: ["💨", "up"] } },
+    star:     { e: "⭐", name: "Star",     adj: "Sparkly", col: "#ffd23f", fx: { tint: "glow", wiggle: "spin", wx: ["✨", "down"] } },
+    rainbow:  { e: "🌈", name: "Rainbow",  adj: "Rainbow", col: "#b97bff", fx: { tint: "rainbow" } },
+    sock:     { e: "🧦", name: "Sock",     adj: "Stinky",  col: "#8fae3a", fx: { tint: "stinky", wiggle: "wobble", wx: ["💨", "up"] } },
+    pants:    { e: "🩲", name: "Pants",    adj: "Pantsy",  col: "#4fc3f7", fx: { wear: "pants", wx: ["🩲", "down"] } },
+    sweet:    { e: "🍬", name: "Sweetie",  adj: "Sugary",  col: "#ff8fc8", fx: { move: "bounce", wx: ["🍬", "down"] } },
+    worm:     { e: "🐛", name: "Worm",     adj: "Wiggly",  col: "#c6e05a", fx: { wiggle: "wiggle" } },
+    mushroom: { e: "🍄", name: "Mushroom", adj: "Giant",   col: "#e04848", fx: { size: "big" } },
+    hat:      { e: "🎩", name: "Top Hat",  adj: "Fancy",   col: "#7a6aa0", fx: { wear: "hat" } },
+  };
+  const KEYS = Object.keys(ING);
+  const pairKey = (a, b) => [a, b].sort().join("+");
+  const ALL_PAIRS = [];
+  KEYS.forEach((a, i) => KEYS.slice(i).forEach(b => ALL_PAIRS.push(pairKey(a, b))));   // 78 potions
+  function potionName(a, b) {
+    if (a === b) return `Super ${ING[a].adj} Potion`;
+    const [x, y] = [a, b].sort();
+    return `${ING[x].adj} ${ING[y].adj} Potion`;
+  }
+
+  // ---------- Secret potions: their own surprises ----------
+  const SECRETS = [
+    { id: "flyingpants", pair: ["pants", "balloon"], name: "Flying Pants!", icon: "🩲", line: "Where are my pants?!", mood: "wail" },
+    { id: "runawayhat",  pair: ["hat", "balloon"],   name: "Runaway Hat!", icon: "🎩", line: "Hey! I want my hat back!", mood: "grump" },
+    { id: "hotcold",     pair: ["ice", "chilli"],    name: "Hot and Cold!", icon: "🥶", line: "Brrr! Ouch, hot! Brrr!", mood: "happy" },
+    { id: "giantfrog",   pair: ["frog", "mushroom"], name: "Giant Frog!", icon: "🐸", line: "Ribbit!", mood: "grump" },
+    { id: "superstinky", pair: ["sock", "sock"],     name: "Super Stinky!", icon: "🧦", line: "Pee-yew! Who did that?", mood: "happy" },
+    { id: "sweetstorm",  pair: ["sweet", "sweet"],   name: "Sweetie Storm!", icon: "🍭", line: "Sweeties everywhere!", mood: "happy" },
+    { id: "unicorn",     pair: ["rainbow", "star"],  name: "Unicorn Magic!", icon: "🦄", line: "I'm a unicorn!", mood: "happy" },
+    { id: "butterfly",   pair: ["worm", "balloon"],  name: "Butterfly Magic!", icon: "🦋", line: "Look, I can fly!", mood: "happy" },
+    { id: "fancypants",  pair: ["pants", "hat"],     name: "Fancy Pants!", icon: "🤵", line: "I've got pants on my head!", mood: "happy" },
+    { id: "dragon",      pair: ["frog", "chilli"],   name: "Dragon Breath!", icon: "🐉", line: "Roooar!", mood: "grump" },
+    { id: "icecream",    pair: ["ice", "sweet"],     name: "Ice Cream!", icon: "🍦", line: "Brain freeze!", mood: "happy" },
+    { id: "upaway",      pair: ["balloon", "mushroom"], name: "Up, Up and Away!", icon: "🚀", line: "Wheeeee!", mood: "wail" },
+    { id: "shootingstar", pair: ["star", "star"],    name: "Shooting Star!", icon: "🌠", line: "Make a wish!", mood: "happy" },
+    { id: "disco",       pair: ["rainbow", "rainbow"], name: "Disco Party!", icon: "🕺", line: "Disco time!", mood: "happy" },
+    { id: "wormparty",   pair: ["worm", "worm"],     name: "Worm Party!", icon: "🐛", line: "Wiggle wiggle wiggle!", mood: "happy" },
+    { id: "frogchorus",  pair: ["frog", "frog"],     name: "Frog Choir!", icon: "🎶", line: "Ribbit ribbit ribbit!", mood: "happy" },
+    { id: "laundry",     pair: ["sock", "pants"],    name: "Laundry Day!", icon: "🧺", line: "Who left their pants here?", mood: "happy" },
+    { id: "magictrick",  pair: ["hat", "star"],      name: "Magic Trick!", icon: "🐰", line: "Ta-da! A rabbit!", mood: "happy" },
+  ];
+  const SECRET_BY_PAIR = Object.fromEntries(SECRETS.map(s => [pairKey(...s.pair), s]));
+
+  // ---------- Audio and voice ----------
+  let ac = null;
+  function audio() {
+    if (!ac) { try { ac = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { ac = null; } }
+    if (ac && ac.state === "suspended") ac.resume().catch(() => {});
+    return ac;
+  }
+  function tone(type, f0, f1, dur, vol, delay = 0) {
+    const a = ac; if (!a) return;
+    const t = a.currentTime + delay;
+    const o = a.createOscillator(), g = a.createGain();
+    o.type = type; o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(f1, t + dur);
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + 0.01); g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+    o.connect(g).connect(a.destination); o.start(t); o.stop(t + dur + .05);
+  }
+  const splash = (k) => { const f = 300 + KEYS.indexOf(k) * 40; tone("sine", f * 2, f * .6, .25, .25); tone("triangle", f, f * 1.5, .12, .12, .1); };
+  const bubbling = () => { for (let i = 0; i < 6; i++) tone("sine", 200 + Math.random() * 300, 500 + Math.random() * 300, .08, .12, i * .12); };
+  const poofSound = () => { tone("sawtooth", 900, 80, .5, .08); tone("triangle", 523, 1046, .35, .18, .2); };
+  const fanfare = () => [523, 659, 784, 1047].forEach((f, i) => tone("triangle", f, f, i === 3 ? .6 : .16, .22, i * .1));
+  function speak(text, mood = "happy", interrupt = true) {
+    try {
+      const s = window.speechSynthesis; if (!s) return;
+      if (!interrupt && s.speaking) return;
+      s.cancel();
+      const u = new SpeechSynthesisUtterance(text);
+      const m = { wail: [1.9, 1.05], grump: [0.45, 0.9], happy: [1.4, 1.1] }[mood] || [1, 1];
+      u.pitch = m[0]; u.rate = m[1]; u.lang = "en-GB";
+      s.speak(u);
+    } catch (e) {}
+  }
+
+  // ---------- Home ----------
+  $("goScreen").onclick = () => { $("home").hidden = true; startScreen(); };
+  $("goPad").onclick = () => { $("home").hidden = true; startPad(Net.codeFromUrl()); };
+  if (Net.codeFromUrl()) { $("home").hidden = true; startPad(Net.codeFromUrl()); }
+  else if (Net.tvFromUrl()) { $("home").hidden = true; startScreen(); }
+
+  // =====================================================================
+  // BIG SCREEN
+  // =====================================================================
+  function startScreen() {
+    document.body.classList.add("on-screen");
+    Net.tvMenuButton();
+    $("screen").hidden = false; $("start").hidden = false;
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const EFFECT_MS = 6500;
+    const P = PLAYERS.map((pl, i) => ({ i, pl, here: false, local: false, slots: [], brewing: false, result: null, st: null, timers: [] }));
+    let started = false, playersKey = "";
+    // what's been discovered is remembered on this TV between games
+    let found = new Set(), foundSecrets = new Set();
+    try { JSON.parse(localStorage.getItem("potion-found") || "[]").forEach(k => found.add(k)); } catch (e) {}
+    for (const k of found) if (SECRET_BY_PAIR[k]) foundSecrets.add(SECRET_BY_PAIR[k].id);
+    const save = () => { try { localStorage.setItem("potion-found", JSON.stringify([...found])); } catch (e) {} };
+
+    const present = () => { const h = P.filter(x => x.here || x.local); return h.length ? h : [P[0]]; };
+
+    function makeStation(x) {
+      const d = document.createElement("div");
+      d.className = "station"; d.style.setProperty("--c", x.pl.color);
+      d.innerHTML = `
+        <div class="char"><div class="move"><div class="size"><span class="wear hat">🎩</span>
+          <div class="w1"><div class="w2"><div class="t1"><div class="t2"><span class="emoji">${x.pl.face}</span></div></div></div></div>
+          <span class="wear pants">🩲</span></div></div></div>
+        <div class="pot"><div class="body"></div><div class="liquid"></div><span class="bub"></span><span class="bub"></span><span class="bub"></span><div class="in"></div></div>
+        <div class="fire">🔥</div><div class="label">${x.pl.name}</div>`;
+      const q = (s) => d.querySelector(s);
+      x.st = { el: d, pot: q(".pot"), inEl: q(".in"), emoji: q(".emoji"), move: q(".move"), size: q(".size"), w1: q(".w1"), w2: q(".w2"), t1: q(".t1"), t2: q(".t2"), hat: q(".wear.hat"), pants: q(".wear.pants") };
+      d.addEventListener("pointerdown", () => { if (started) add(x, KEYS[Math.floor(Math.random() * KEYS.length)]); });
+      drawSlots(x);
+    }
+    function layout() {
+      const box = $("kitchen"), list = present();
+      for (const x of P) if (!list.includes(x) && x.st) { reset(x); x.st.el.remove(); x.st = null; x.slots = []; x.brewing = false; }
+      for (const x of list) { if (!x.st) makeStation(x); box.appendChild(x.st.el); }
+    }
+    function drawSlots(x) {
+      if (!x.st) return;
+      x.st.inEl.textContent = x.slots.map(k => ING[k].e).join("");
+      const mix = x.slots.length ? mixColour(x.slots.map(k => ING[k].col)) : "";
+      x.st.pot.style.setProperty("--liquid", mix || "var(--brew)");
+    }
+    function mixColour(cols) {
+      const rgb = cols.map(c => [1, 3, 5].map(i => parseInt(c.slice(i, i + 2), 16)));
+      const avg = [0, 1, 2].map(j => Math.round(rgb.reduce((s, c) => s + c[j], 0) / rgb.length));
+      return "#" + avg.map(v => v.toString(16).padStart(2, "0")).join("");
+    }
+    function drawBook() {
+      $("bookTitle").textContent = `📖 Spellbook: ${found.size} of ${ALL_PAIRS.length} potions · secret potions ${foundSecrets.size} of ${SECRETS.length}`;
+      $("bottles").innerHTML = SECRETS.map(s => `<span id="bottle-${s.id}" class="${foundSecrets.has(s.id) ? "found" : ""}">${foundSecrets.has(s.id) ? s.icon : "🧪"}</span>`).join("");
+    }
+
+    // ----- brewing -----
+    function add(x, k) {
+      if (!ING[k] || x.brewing || !x.st || x.slots.length >= 2) return;
+      x.slots.push(k); drawSlots(x); splash(k);
+      x.result = null;
+      dropIn(x, ING[k].e);
+      if (x.slots.length === 2) brew(x);
+      share();
+    }
+    function dropIn(x, e) {
+      const s = document.createElement("span"); s.className = "flyoff"; s.textContent = e;
+      document.body.appendChild(s);
+      const r = x.st.pot.getBoundingClientRect(), cx = r.left + r.width / 2, cy = r.top + r.height * .2;
+      s.animate([{ transform: `translate(${cx}px, ${-80}px) translate(-50%, -50%) rotate(0)` }, { transform: `translate(${cx}px, ${cy}px) translate(-50%, -50%) rotate(300deg) scale(.6)` }],
+        { duration: reduce ? 1 : 550, easing: "ease-in", fill: "forwards" }).finished.catch(() => {}).then(() => s.remove());
+    }
+    function brew(x) {
+      x.brewing = true;
+      const [a, b] = x.slots, key = pairKey(a, b), secret = SECRET_BY_PAIR[key];
+      x.st.pot.classList.add("boil"); bubbling();
+      later(x, () => {
+        x.st.pot.classList.remove("boil"); poofSound();
+        const pf = document.createElement("span"); pf.className = "poof"; pf.textContent = "💨"; x.st.el.appendChild(pf); setTimeout(() => pf.remove(), 800);
+        const isNew = !found.has(key);
+        found.add(key); save();
+        if (secret) {
+          const firstTime = !foundSecrets.has(secret.id);
+          foundSecrets.add(secret.id);
+          runSecret(x, secret);
+          label(x, secret.name, true);
+          speak(secret.line, secret.mood);
+          if (firstTime) celebrate(secret);
+        } else {
+          applyFx(x, a, 1); if (b !== a) applyFx(x, b, 2); else superFx(x, a);
+          label(x, potionName(a, b) + (isNew ? " ✨" : ""), false);
+          speak(potionName(a, b) + "!", "happy", false);
+        }
+        x.result = { name: secret ? secret.name : potionName(a, b), secret: !!secret, icon: secret ? secret.icon : "", isNew };
+        drawBook(); share();
+        later(x, () => { reset(x); x.slots = []; x.brewing = false; drawSlots(x); share(); }, EFFECT_MS);
+      }, reduce ? 50 : 1100);
+    }
+    function later(x, fn, ms) { const t = setTimeout(fn, ms); x.timers.push(t); }
+    function label(x, text, secret) {
+      const old = x.st.el.querySelector(".potname"); if (old) old.remove();
+      const n = document.createElement("div"); n.className = "potname" + (secret ? " secret" : ""); n.textContent = text;
+      x.st.el.appendChild(n);
+    }
+    function reset(x) {
+      x.timers.forEach(clearTimeout); x.timers = [];
+      if (!x.st) return;
+      const s = x.st;
+      for (const el of [s.move, s.size, s.w1, s.w2, s.t1, s.t2]) el.className = el.className.split(" ").filter(c => /^(move|size|w1|w2|t1|t2)$/.test(c)).join(" ");
+      s.emoji.textContent = x.pl.face; s.hat.className = "wear hat"; s.pants.className = "wear pants";
+      s.el.classList.remove("disco");
+      const n = s.el.querySelector(".potname"); if (n) n.remove();
+      s.el.querySelectorAll(".wx").forEach(w => w.remove());
+    }
+    function applyFx(x, k, slot) {
+      const fx = ING[k].fx, s = x.st;
+      if (fx.move) s.move.classList.add("m-" + fx.move);
+      if (fx.size) s.size.classList.add("s-" + fx.size);
+      if (fx.wiggle) (slot === 1 ? s.w1 : s.w2).classList.add("w-" + fx.wiggle);
+      if (fx.tint) (slot === 1 ? s.t1 : s.t2).classList.add("t-" + fx.tint);
+      if (fx.wear) s[fx.wear].classList.add("on");
+      if (fx.wx) weather(x, fx.wx[0], fx.wx[1], 8);
+    }
+    function superFx(x, k) {    // the same thing twice: bigger and more of it
+      const fx = ING[k].fx;
+      if (fx.size) x.st.size.classList.replace("s-big", "s-huge");
+      if (fx.wx) weather(x, fx.wx[0], fx.wx[1], 10);
+      if (!fx.size) x.st.size.classList.add("s-big");
+    }
+    function weather(x, e, dir, n, whole) {
+      const host = whole ? document.body : x.st.el;
+      for (let i = 0; i < n; i++) {
+        const w = document.createElement("span"); w.className = "wx " + dir; w.textContent = Array.isArray(e) ? e[i % e.length] : e;
+        if (whole) { w.style.position = "fixed"; w.style.left = (Math.random() * 96) + "vw"; w.style.top = dir === "down" ? "22vh" : (dir === "side" ? (30 + Math.random() * 30) + "vh" : "auto"); if (dir === "up") w.style.bottom = "22vh"; }
+        else w.style.left = (Math.random() * 90 - 5) + "%";
+        if (dir === "side") w.style.setProperty("--dx", (Math.random() > .5 ? 1 : -1) * (20 + Math.random() * 20) + "vw");
+        w.style.animationDelay = (Math.random() * 1.8) + "s";
+        host.appendChild(w); setTimeout(() => w.remove(), 5000);
+      }
+    }
+    function flyAway(x, el, text) {   // a hat or pants floating off into the sky
+      const r = el.getBoundingClientRect();
+      const s = document.createElement("span"); s.className = "flyoff"; s.textContent = text; document.body.appendChild(s);
+      const from = `translate(${r.left + r.width / 2}px, ${r.top + r.height / 2}px) translate(-50%, -50%)`;
+      s.animate([{ transform: from }, { transform: `translate(${r.left + 120}px, ${-120}px) translate(-50%, -50%) rotate(40deg)` }],
+        { duration: reduce ? 1 : 2600, easing: "ease-in", fill: "forwards" }).finished.catch(() => {}).then(() => s.remove());
+      el.classList.remove("on");
+    }
+    function runSecret(x, sec) {
+      const s = x.st;
+      switch (sec.id) {
+        case "flyingpants": s.pants.classList.add("on"); later(x, () => { flyAway(x, s.pants, "🩲"); s.w1.classList.add("w-shiver"); }, 900); break;
+        case "runawayhat": s.hat.classList.add("on"); later(x, () => { flyAway(x, s.hat, "🎩"); s.w1.classList.add("w-rattle"); }, 900); break;
+        case "hotcold": { let hot = false; s.w1.classList.add("w-shiver"); const flip = () => { hot = !hot; s.t1.className = "t1 " + (hot ? "t-hot" : "t-frozen"); if (x.brewing) later(x, flip, 700); }; flip(); weather(x, ["❄️", "💨"], "down", 10); break; }
+        case "giantfrog": s.emoji.textContent = "🐸"; s.size.classList.add("s-huge"); s.move.classList.add("m-hop"); break;
+        case "superstinky": s.t1.classList.add("t-stinky"); s.w1.classList.add("w-wobble"); weather(x, "💨", "up", 16, true); break;
+        case "sweetstorm": weather(x, ["🍬", "🍭", "🍫", "🧁", "🍩"], "down", 26, true); s.move.classList.add("m-bounce"); break;
+        case "unicorn": s.emoji.textContent = "🦄"; s.t2.classList.add("t-rainbow"); weather(x, "✨", "down", 10); break;
+        case "butterfly": s.emoji.textContent = "🦋"; s.move.classList.add("m-float"); s.w1.classList.add("w-wobble"); break;
+        case "fancypants": s.pants.classList.add("on", "onhead"); s.w1.classList.add("w-wobble"); break;
+        case "dragon": s.emoji.textContent = "🐉"; s.size.classList.add("s-big"); weather(x, "🔥", "side", 10); break;
+        case "icecream": s.emoji.textContent = "🍦"; s.w1.classList.add("w-shiver"); weather(x, "❄️", "down", 10); break;
+        case "upaway": s.move.classList.add("m-away"); weather(x, "🎈", "up", 8); break;
+        case "shootingstar": s.t1.classList.add("t-glow"); weather(x, "🌠", "side", 6, true); weather(x, "✨", "down", 14, true); break;
+        case "disco": s.el.classList.add("disco"); s.w1.classList.add("w-wobble"); s.t2.classList.add("t-rainbow"); s.move.classList.add("m-bounce"); break;
+        case "wormparty": s.w1.classList.add("w-wiggle"); weather(x, "🐛", "side", 12, true); break;
+        case "frogchorus": weather(x, "🐸", "up", 12, true); s.move.classList.add("m-hop"); for (let i = 0; i < 4; i++) tone("square", 160, 110, .12, .1, i * .4); break;
+        case "laundry": weather(x, ["🧦", "🩲"], "down", 18, true); s.pants.classList.add("on"); break;
+        case "magictrick": s.hat.classList.add("on"); later(x, () => { s.emoji.textContent = "🐰"; s.move.classList.add("m-hop"); weather(x, "✨", "down", 10); }, 700); break;
+      }
+    }
+    function celebrate(sec) {
+      fanfare();
+      const n = document.createElement("div"); n.className = "newsecret"; n.textContent = `New secret potion: ${sec.icon} ${sec.name}`;
+      document.body.appendChild(n); setTimeout(() => n.remove(), 3300);
+      requestAnimationFrame(() => { const b = $("bottle-" + sec.id); if (b) b.classList.add("new"); });
+    }
+
+    const link = connectScreen({
+      onAct: (p, a) => {
+        if (!a || typeof a !== "object") return;
+        if (a.a === "add") add(P[p], String(a.ing));
+      },
+      onPlayers: (set) => {
+        const key = [...set].sort().join(",");
+        if (key === playersKey) return;
+        playersKey = key;
+        P.forEach(x => { x.here = set.has(x.i); });
+        layout(); share();
+      },
+    });
+    function share() {
+      const players = {};
+      for (const x of P) players[x.i] = { slots: x.slots.map(k => ING[k].e).join(""), brewing: x.brewing, result: x.result };
+      link.share({ players, secrets: [...foundSecrets], found: found.size, all: ALL_PAIRS.length });
+    }
+
+    // local play (no phones)
+    window.addEventListener("keydown", (e) => {
+      if (!started || !["1", "2", "3", "4"].includes(e.key)) return;
+      const x = P[Number(e.key) - 1];
+      if (!x.local) { x.local = true; layout(); }
+      add(x, KEYS[Math.floor(Math.random() * KEYS.length)]);
+    });
+    $("startBtn").onclick = async () => {
+      audio(); $("start").hidden = true; started = true; bubbling();
+      try { if (navigator.wakeLock) await navigator.wakeLock.request("screen"); } catch (e) {}
+      try { if (document.documentElement.requestFullscreen) await document.documentElement.requestFullscreen(); } catch (e) {}
+    };
+    layout(); drawBook(); share();
+  }
+
+  // =====================================================================
+  // CONTROLLER
+  // =====================================================================
+  function startPad(code) {
+    if (!code) { Net.askCode((c) => startPad(c)); return; }
+    $("pad").hidden = false; document.body.classList.add("on-pad");
+    let me = -1, last = null, hintFor = null;
+    try { const s = localStorage.getItem("potion-player"); if (s !== null && okPlayer(Number(s))) me = Number(s); } catch (e) {}
+    const link = connectPad(code, { onState });
+    const act = (a) => { if (me >= 0) link.act({ ...a, p: me }); };
+
+    PLAYERS.forEach((pl, i) => {
+      const b = document.createElement("button");
+      b.className = "pick"; b.id = "who-" + i; b.style.setProperty("--c", pl.color);
+      b.innerHTML = `${pl.face}<span>${pl.name}</span>`;
+      b.onclick = () => { audio(); splash("frog"); choose(i); };
+      $("whogrid").appendChild(b);
+    });
+    for (const k of KEYS) {
+      const b = document.createElement("button");
+      b.className = "ing"; b.id = "ing-" + k; b.innerHTML = `${ING[k].e}<span>${ING[k].name}</span>`;
+      b.addEventListener("pointerdown", (e) => {
+        e.preventDefault(); audio();
+        if ($("ings").classList.contains("busy")) return;
+        splash(k);
+        try { navigator.vibrate && navigator.vibrate(20); } catch (err) {}
+        act({ a: "add", ing: k });
+      });
+      $("ings").appendChild(b);
+    }
+    function choose(i) {
+      me = i;
+      try { localStorage.setItem("potion-player", String(i)); } catch (e) {}
+      link.setMe(i);
+      $("who").hidden = true; $("play").hidden = false; $("swap").hidden = false;
+      render();
+    }
+    function showWho() { $("who").hidden = false; $("play").hidden = true; $("swap").hidden = true; }
+    $("swap").onclick = () => { audio(); showWho(); };
+
+    function mine() { const m = last && last.players ? last.players[me] : null; return m && typeof m === "object" ? m : { slots: "", brewing: false, result: null }; }
+    function render() {
+      if (me < 0 || !$("who").hidden) return;
+      const m = mine();
+      const slots = typeof m.slots === "string" ? Array.from(m.slots.matchAll(/\p{Extended_Pictographic}️?/gu), x => x[0]) : [];
+      [0, 1].forEach(i => { const s = $("slot" + i); s.textContent = slots[i] || ""; s.classList.toggle("full", !!slots[i]); });
+      const t = $("padTitle");
+      const r = m.result && typeof m.result === "object" ? m.result : null;
+      if (m.brewing && r) { t.textContent = (r.secret ? "🌟 Secret! " : "") + String(r.name || ""); t.classList.toggle("secret", !!r.secret); }
+      else if (m.brewing) { t.textContent = "Bubble bubble…"; t.classList.remove("secret"); }
+      else if (slots.length === 1) { t.textContent = "Now pick one more!"; t.classList.remove("secret"); }
+      else { t.textContent = last ? "Pick two things!" : "Looking for the TV…"; t.classList.remove("secret"); }
+      $("ings").classList.toggle("busy", !!m.brewing || slots.length >= 2);
+      const secrets = new Set(last && Array.isArray(last.secrets) ? last.secrets.map(String) : []);
+      const icons = SECRETS.filter(s => secrets.has(s.id)).map(s => s.icon).join(" ");
+      $("bookFound").innerHTML = `Secret potions: ${secrets.size} of ${SECRETS.length}<small></small>`;
+      $("bookFound").querySelector("small").textContent = icons;
+      if (hintFor && secrets.has(hintFor.id)) { hintFor = null; $("hintBox").hidden = true; }
+    }
+    $("hintBtn").addEventListener("click", () => {
+      audio();
+      const secrets = new Set(last && Array.isArray(last.secrets) ? last.secrets.map(String) : []);
+      const left = SECRETS.filter(s => !secrets.has(s.id));
+      if (!left.length) { $("hintBox").hidden = false; $("hintBox").textContent = "🏆"; return; }
+      hintFor = left[Math.floor(Math.random() * left.length)];
+      $("hintBox").hidden = false; $("hintBox").textContent = `${ING[hintFor.pair[0]].e} + ❔`;   // a picture clue anyone can read
+      tone("sine", 660, 990, .2, .15);
+    });
+    function onState(st) { if (!st || typeof st !== "object") return; last = st; render(); }
+
+    if (me >= 0) choose(me); else showWho();
+  }
+
+  // ---------- connection START ----------
+  function connectScreen({ onAct, onPlayers }) {
+    let net = null, last = null;
+    const who = new Map();
+    const update = () => { Net.setCount(who.size); onPlayers(new Set([...who.values()].filter(okPlayer))); };
+    $("hint").textContent = "Getting ready for phones…";
+    net = Net.host("potion", {
+      onReady: (code) => { Net.joinCard(code); $("hint").hidden = true; },
+      onJoin: (c) => { who.set(c, -1); update(); if (last) net.send(c, last); },
+      onLeave: (c) => { who.delete(c); update(); },
+      onMessage: (m, c) => {
+        const p = Number(m.p); if (!okPlayer(p)) return;
+        if (who.get(c) !== p) { who.set(c, p); update(); }
+        if (m.t === "act") onAct(p, m);
+      },
+      onProblem: () => { $("hint").hidden = false; $("hint").textContent = "Phones can't connect right now. Check the internet connection and reload."; },
+    });
+    return { share(state) { last = { t: "state", ...state }; if (net) net.broadcast(last); } };
+  }
+  function connectPad(code, { onState }) {
+    let me = -1, link = null;
+    link = Net.join("potion", code, {
+      onStatus: (s) => {
+        const ok = s === "open";
+        $("dot").classList.toggle("ok", ok);
+        $("statusText").textContent = ok ? "Connected" : s === "notfound" ? `Looking for game ${code}…` : "Connecting to the TV…";
+        if (ok && me >= 0) link.send({ t: "hello", p: me });
+      },
+      onMessage: (m) => { if (m.t === "state") onState(m); },
+    });
+    Net.padMenuButton(link);
+    return {
+      act(a) { link.send({ t: "act", ...a }); },
+      setMe(p) { me = p; link.send({ t: "hello", p }); },
+    };
+  }
+  // ---------- connection END ----------
+})();
+</script>
+
+</body>
+</html>
