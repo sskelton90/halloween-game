@@ -1,0 +1,654 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<script>
+/* If something fails to load (an old cached file, a dropped connection), say so instead of showing a blank screen. */
+(function () {
+  var shown = false;
+  function show(msg) {
+    if (shown) return; shown = true;
+    var d = document.createElement("div");
+    d.setAttribute("style", "position:fixed;inset:0;z-index:99;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:24px;text-align:center;background:#1b0f33;color:#fff6e6;font:500 18px system-ui,sans-serif");
+    d.innerHTML = '<div style="font-size:56px">🎃</div><div style="font:800 26px system-ui,sans-serif">Oops, part of the game didn\'t load</div><div style="max-width:30em;opacity:.85">Reload to try again. If it keeps happening, check the internet connection.</div><button style="font:800 22px system-ui,sans-serif;padding:10px 32px;border-radius:999px;border:0;background:#ff8a1f;color:#1b0f33">Reload</button><div style="font-size:13px;opacity:.55;max-width:40em;word-break:break-word"></div>';
+    d.lastChild.textContent = String(msg || "");
+    d.querySelector("button").onclick = function () { location.reload(); };
+    (document.body || document.documentElement).appendChild(d);
+  }
+  // Only step in when the screen would otherwise be blank: a missing file, or a crash that left nothing showing.
+  function blank() {
+    var els = document.querySelectorAll("#home, #screen, #pad, .games");
+    for (var i = 0; i < els.length; i++) if (!els[i].hidden) return false;
+    return true;
+  }
+  window.addEventListener("error", function (e) {
+    var t = e.target;
+    if (t && t.tagName === "SCRIPT") { show("Couldn't load " + (t.getAttribute("src") || "a script")); return; }
+    var msg = e.message;
+    setTimeout(function () { if (blank()) show(msg); }, 0);
+  }, true);
+})();
+</script>
+<style>[hidden]{display:none!important}body{margin:0}</style>
+<title>Peekaboo Ghosts</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&family=Griffy&display=swap">
+<style>
+/* Layout: a 3×3 grid of hiding spots across the TV (the phone shows the same grid), with each child's ghost jar along the bottom. */
+:root {
+  --night: #1b0f33;
+  --dusk: #3a1d63;
+  --glow: #6b3fa0;
+  --moon: #fff3b8;
+  --candy: #ff8a1f;
+  --slime: #9cf26b;
+  --ink: #1b0f33;
+  --text: #fff6e6;
+  --stone: #8d8aa3;
+  --leaf: #3e8e3a;
+  --glass: rgba(255, 246, 230, 0.12);
+  --glass-line: rgba(255, 246, 230, 0.32);
+  --display: "Griffy", "Baloo 2", "Comic Sans MS", cursive;
+  --body: "Baloo 2", "Arial Rounded MT Bold", "Trebuchet MS", system-ui, sans-serif;
+  color-scheme: dark;
+}
+html, body { height: 100%; }
+body {
+  background: var(--night); color: var(--text); font-family: var(--body);
+  overflow: hidden; -webkit-user-select: none; user-select: none;
+  -webkit-tap-highlight-color: transparent; touch-action: manipulation;
+}
+.sky { position: fixed; inset: 0; z-index: 0;
+  background:
+    radial-gradient(90% 35% at 50% 105%, #2c5a1e 0 60%, transparent 61%),
+    linear-gradient(180deg, var(--night) 0%, var(--dusk) 60%, var(--glow) 100%); }
+body.indoors .sky { background: repeating-linear-gradient(90deg, #3a2550 0 6vw, #33204a 6vw 12vw), #3a2550; }
+body.indoors .sky::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 26vh; background: repeating-linear-gradient(90deg, #5a3a26 0 8vw, #4e321f 8vw 16vw); }
+.moon {
+  position: fixed; z-index: 0; top: calc(6vh + env(safe-area-inset-top, 0px)); right: max(6vw, env(safe-area-inset-right, 0px));
+  width: min(18vmin, 180px); aspect-ratio: 1; max-width: 100%; border-radius: 50%;
+  background: radial-gradient(circle at 38% 35%, #fffbe0, var(--moon) 55%, #f3d97a);
+  box-shadow: 0 0 60px 20px rgba(255, 243, 184, 0.22);
+}
+.moon::before, .moon::after { content: ""; position: absolute; top: 38%; width: 10%; height: 14%; border-radius: 50%; background: #6b5a2a; }
+.moon::before { left: 32%; } .moon::after { right: 32%; }
+.moon i { position: absolute; left: 30%; right: 30%; top: 56%; height: 16%; border-bottom: .5vmin solid #6b5a2a; border-radius: 0 0 50% 50%; }
+body.on-pad .moon, body.on-screen .moon { display: none; }
+.view {
+  position: fixed; inset: 0; z-index: 1;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: calc(14px + env(safe-area-inset-top, 0px)) calc(14px + env(safe-area-inset-bottom, 0px));
+}
+button { font-family: var(--body); color: inherit; cursor: pointer; }
+button:focus-visible { outline: 4px solid var(--moon); outline-offset: 3px; }
+
+/* hiding-spot objects drawn in em, so they scale on the TV and on the phone */
+.obj { display: inline-flex; align-items: center; justify-content: center; line-height: 1; }
+.stone { width: .9em; height: 1.05em; border-radius: .45em .45em .08em .08em; background: linear-gradient(90deg, #7a7790, var(--stone) 40%, #a29fb8);
+  box-shadow: inset 0 -.08em 0 rgba(0,0,0,.25); }
+.stone b { font-size: .22em; font-weight: 800; color: #3b3850; letter-spacing: .05em; }
+.bush { width: 1.25em; height: .85em; position: relative; }
+.bush::before, .bush::after, .bush i { content: ""; position: absolute; border-radius: 50%; background: var(--leaf); box-shadow: inset 0 -.06em 0 rgba(0,0,0,.2); }
+.bush::before { left: 0; bottom: 0; width: .65em; height: .6em; }
+.bush::after { right: 0; bottom: 0; width: .65em; height: .6em; }
+.bush i { left: .27em; top: 0; width: .72em; height: .72em; background: #4aa346; }
+.ghost { position: relative; display: inline-block; line-height: 1; }
+.ghost .b { position: absolute; right: -.15em; bottom: -.05em; font-size: .42em; }
+
+/* ---------- Home ---------- */
+.home { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1.4rem; text-align: center; }
+.home h1 { margin: 0; font-family: var(--display); font-weight: 400; font-size: clamp(2.8rem, 11vw, 7rem); line-height: .95; color: var(--candy); text-wrap: balance; text-shadow: 0 6px 0 rgba(0,0,0,.35); }
+.home h1 span { display: block; color: var(--slime); font-size: .5em; }
+.home p { margin: 0; max-width: 34ch; font-size: 1.15rem; opacity: .9; }
+.cast { font-size: clamp(2.2rem, 8vw, 3.6rem); display: flex; gap: .6rem; align-items: flex-end; }
+.cast .peeky { animation: peeky 2.4s ease-in-out infinite; display: inline-block; }
+@keyframes peeky { 0%, 60%, 100% { transform: translateY(0); } 30% { transform: translateY(-.6em) rotate(-10deg); } }
+.choices { display: flex; flex-wrap: wrap; gap: 1rem; justify-content: center; width: 100%; max-width: 640px; }
+.choice {
+  flex: 1 1 240px; min-height: 130px; border-radius: 28px; border: 2px solid var(--glass-line);
+  background: var(--glass); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .2rem;
+  font-size: 1.6rem; font-weight: 800; transition: transform .12s;
+}
+.choice small { font-size: 1rem; font-weight: 500; opacity: .8; }
+.choice .big { font-size: 2.8rem; line-height: 1; }
+.choice:active { transform: scale(.96); }
+
+/* ---------- Big screen ---------- */
+.screen { display: flex; flex-direction: column; pointer-events: none; gap: 1vh; }
+.topbar { width: 100%; box-sizing: border-box; display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; flex-wrap: wrap; padding-right: min(22vmin, 200px); }
+.brand { font-family: var(--display); font-size: clamp(1.6rem, 3.4vw, 2.8rem); color: var(--candy); }
+.hint { font-size: clamp(.9rem, 1.6vw, 1.2rem); background: var(--glass); border: 1px solid var(--glass-line); border-radius: 999px; padding: .4rem 1rem; max-width: 100%; }
+.place { position: relative; flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; transition: opacity .6s; }
+.place.fade { opacity: 0; }
+.sign { position: absolute; left: 1vw; top: 0; z-index: 2; background: #2f6b3a; border: .4vh solid #fff6e6; border-radius: 1vh; padding: .3vh 1.6vw;
+  font-weight: 800; font-size: clamp(1rem, 2.4vw, 2rem); box-shadow: 0 .6vh 0 rgba(0,0,0,.35); }
+.grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); grid-template-rows: repeat(3, minmax(0, 1fr)); gap: 1vh 6vw; height: 100%; max-height: 64vh; width: min(84vw, 120vh); }
+.spot { position: relative; display: flex; align-items: center; justify-content: center; }
+.spot .obj { font-size: min(14vh, 10vw); transition: transform .35s cubic-bezier(.3, 1.5, .5, 1); transform-origin: 50% 100%; position: relative; z-index: 2; filter: drop-shadow(0 .6vh 0 rgba(0,0,0,.35)); }
+.spot:nth-child(3n+1) .obj { transform: translateY(-1vh); } .spot:nth-child(3n+2) .obj { transform: translateY(1.2vh); }
+.spot.lift .obj { transform: translateY(-5vh) rotate(-14deg); }
+.spot .num { display: none; }
+.found-pop, .miss-pop { position: absolute; left: 50%; top: 52%; z-index: 1; font-size: min(10vh, 7vw); line-height: 1; transform: translate(calc(-50% + var(--dx, 0px)), -50%) scale(0);
+  animation: popup 2.2s cubic-bezier(.3, 1.6, .5, 1) forwards; }
+@keyframes popup { 0% { transform: translate(calc(-50% + var(--dx, 0px)), -10%) scale(0); } 18%, 80% { transform: translate(calc(-50% + var(--dx, 0px)), -60%) scale(1); } 100% { transform: translate(calc(-50% + var(--dx, 0px)), -10%) scale(0); } }
+.clue { position: absolute; right: -.2em; top: -.2em; font-size: .45em; }
+.say { position: fixed; z-index: 5; left: 0; top: 0; pointer-events: none; transform: translate(-50%, -100%); max-width: 26vw; box-sizing: border-box;
+  background: var(--text); color: var(--ink); font-weight: 800; font-size: clamp(.9rem, 1.7vw, 1.6rem); line-height: 1.1; padding: .4rem .7rem; border-radius: 1.6vh;
+  border: .35vh solid var(--ink); text-align: center; text-wrap: balance; box-shadow: 0 .6vh 0 rgba(0,0,0,.35); animation: sayin .3s cubic-bezier(.3, 1.6, .5, 1); }
+@keyframes sayin { from { transform: translate(-50%, -80%) scale(.4); opacity: 0; } }
+.jars { display: flex; justify-content: center; gap: 3vw; flex-wrap: wrap; padding-top: .5vh; }
+.jar { display: flex; align-items: center; gap: .8vw; padding: .5vh 1.2vw; border-radius: 999px; background: rgba(0,0,0,.35); border: .4vh solid var(--c); }
+.jar .who { font-size: 5vh; line-height: 1; }
+.jar .slots { display: flex; gap: .4vw; font-size: 4.4vh; line-height: 1; }
+.jar .slots > span { opacity: .3; filter: grayscale(1) brightness(.7); }
+.jar .slots > span.got { opacity: 1; filter: none; }
+.jar.bump { animation: bump .35s; }
+@keyframes bump { 50% { transform: scale(1.1); } }
+.flyer { position: fixed; left: 0; top: 0; z-index: 6; pointer-events: none; font-size: 9vh; line-height: 1; will-change: transform; }
+.cheer { position: fixed; z-index: 6; pointer-events: none; font-weight: 800; font-size: clamp(1.2rem, 2.6vw, 2.2rem); color: var(--slime); text-shadow: 0 .3vh 0 rgba(0,0,0,.6);
+  transform: translate(-50%, 0); animation: cheer 1.6s ease-out forwards; white-space: nowrap; }
+@keyframes cheer { from { opacity: 0; transform: translate(-50%, 2vh) scale(.6); } 20% { opacity: 1; transform: translate(-50%, 0) scale(1.1); } to { opacity: 0; transform: translate(-50%, -12vh) scale(1); } }
+.card { position: fixed; z-index: 5; left: 50%; top: 46%; transform: translate(-50%, -50%); width: min(80vw, 900px); text-align: center; pointer-events: none;
+  background: rgba(27, 15, 51, .9); border: .4vh solid var(--glass-line); border-radius: 4vh; padding: 3vh 3vw; display: flex; flex-direction: column; align-items: center; gap: 1.6vh; }
+.card h2 { margin: 0; font-family: var(--display); font-weight: 400; font-size: clamp(2rem, 6vw, 5rem); color: var(--candy); line-height: 1; text-wrap: balance; }
+.card p { margin: 0; font-size: clamp(1.1rem, 2.4vw, 2rem); font-weight: 800; }
+.parade { position: fixed; z-index: 4; left: 0; right: 0; bottom: 14vh; height: 14vh; pointer-events: none; overflow: hidden; }
+.parade .g { position: absolute; top: 0; font-size: 10vh; line-height: 1; animation: parade 7s linear infinite; }
+@keyframes parade { from { transform: translateX(-12vw) translateY(0); } 25% { transform: translateX(25vw) translateY(-3vh); } 50% { transform: translateX(55vw) translateY(0); } 75% { transform: translateX(85vw) translateY(-3vh); } to { transform: translateX(112vw) translateY(0); } }
+.start { position: fixed; inset: 0; z-index: 7; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1.2rem;
+  background: rgba(27, 15, 51, .6); text-align: center; pointer-events: auto; padding-inline: 16px; }
+.start button { font-size: clamp(2rem, 5vw, 3.5rem); font-weight: 800; padding: .5rem 2.4rem; border-radius: 999px; border: 0; background: var(--candy); color: var(--ink); box-shadow: 0 8px 0 rgba(0,0,0,.4); }
+.start p { margin: 0; font-size: clamp(1rem, 2vw, 1.4rem); max-width: 46ch; }
+
+/* ---------- Controller ---------- */
+.pad { display: flex; flex-direction: column; align-items: center; gap: .8rem; height: 100dvh; box-sizing: border-box; }
+.pad-top { width: 100%; display: flex; justify-content: space-between; align-items: center; gap: .6rem; }
+.status { font-size: .95rem; display: flex; align-items: center; gap: .45rem; min-width: 0; flex: 1; }
+.dot { width: 12px; height: 12px; border-radius: 50%; background: var(--candy); flex: none; }
+.dot.ok { background: var(--slime); }
+.small-btn { background: var(--glass); border: 1px solid var(--glass-line); border-radius: 999px; padding: .4rem 1rem; font-size: .95rem; font-weight: 700; flex: none; }
+.who { flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 1rem; width: 100%; }
+.who h2 { margin: 0; text-align: center; font-family: var(--display); font-weight: 400; font-size: 2.2rem; color: var(--candy); }
+.whogrid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; width: min(520px, 100%, calc(100dvh - 12rem)); margin-inline: auto; }
+.pick { aspect-ratio: 1; max-width: 100%; border-radius: 32px; border: 0; background: var(--c);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 4.2rem; line-height: 1; box-shadow: inset 0 -10px 0 rgba(0,0,0,.2); }
+.pick span { font-size: 1.3rem; font-weight: 800; color: var(--ink); margin-top: .3rem; }
+.play { flex: 1; min-height: 0; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .8rem; text-align: center; }
+.pad-title { margin: 0; font-family: var(--display); font-weight: 400; font-size: clamp(1.7rem, 8vw, 2.8rem); line-height: 1.05; color: var(--candy); text-wrap: balance; }
+.mine { font-size: 2.2rem; line-height: 1; display: flex; gap: .3rem; }
+.mine > span { opacity: .3; filter: grayscale(1) brightness(.7); }
+.mine > span.got { opacity: 1; filter: none; }
+.pgrid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .6rem; width: min(100%, 520px, calc(100dvh - 17rem)); }
+.tile { position: relative; aspect-ratio: 1; max-width: 100%; border: 0; border-radius: 22px; background: rgba(0,0,0,.28); box-shadow: inset 0 -6px 0 rgba(0,0,0,.25);
+  display: flex; align-items: center; justify-content: center; padding: 0; }
+.tile .obj { font-size: clamp(2.4rem, 13vw, 4.4rem); }
+.tile:active { transform: scale(.93); }
+.tile.peeked { background: rgba(255, 246, 230, .06); }
+.tile.peeked .obj { opacity: .35; }
+.tile .res { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: clamp(2rem, 11vw, 3.6rem); }
+.tile .clue { right: .2rem; top: .2rem; font-size: clamp(1rem, 5vw, 1.6rem); }
+.tile.found { background: color-mix(in srgb, var(--c) 35%, transparent); background-color: rgba(156, 242, 107, .2); }
+.tile.wiggle .obj { animation: twig .12s linear 3; }
+@keyframes twig { 50% { transform: rotate(8deg); } }
+.bigact { border: 0; border-radius: 999px; padding: 1.1rem 2.6rem; font-size: clamp(1.6rem, 7vw, 2.4rem); font-weight: 800; background: var(--candy); color: var(--ink);
+  box-shadow: 0 8px 0 rgba(0,0,0,.4); animation: nudge 1.1s ease-in-out infinite; }
+.bigact:active { transform: translateY(5px); box-shadow: 0 3px 0 rgba(0,0,0,.4); }
+@keyframes nudge { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.06); } }
+@media (orientation: landscape) {
+  .whogrid { grid-template-columns: repeat(4, minmax(0, 1fr)); width: min(900px, 100%, calc((100dvh - 10rem) * 4 + 3rem)); }
+  .play { flex-direction: row; flex-wrap: wrap; gap: 1rem 3vw; }
+  .play .words { display: flex; flex-direction: column; align-items: center; gap: .8rem; max-width: 40vw; }
+  .pgrid { width: min(60vw, calc(100dvh - 6rem)); }
+}
+@media (orientation: landscape) and (max-height: 500px) {
+  .pick { font-size: 2.6rem; border-radius: 22px; }
+  .pick span { font-size: 1rem; }
+  .who h2, .pad-title { font-size: 1.5rem; }
+  .tile .obj { font-size: 2rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .bigact, .cast .peeky, .tile.wiggle .obj, .jar.bump, .parade .g { animation: none !important; }
+  .found-pop, .miss-pop, .say, .cheer { animation-duration: .01s !important; }
+  .spot .obj, .place { transition: none; }
+}
+</style>
+</head>
+<body>
+
+<div class="sky"></div>
+<div class="moon" aria-hidden="true"><i></i></div>
+
+<section class="view home" id="home">
+  <div class="cast" aria-hidden="true"><span>🎃</span><span class="peeky">👻</span><span>🌳</span></div>
+  <h1>Peekaboo<span>Ghosts</span></h1>
+  <p>Open this page on the TV and tap Big screen. Then scan the QR code on the TV with each phone.</p>
+  <div class="choices">
+    <button class="choice" id="goScreen"><span class="big">📺</span>Big screen<small>The TV or laptop</small></button>
+    <button class="choice" id="goPad"><span class="big">📱</span>Controller<small>One per ghost hunter</small></button>
+  </div>
+</section>
+
+<section class="view screen" id="screen" hidden>
+  <div class="topbar">
+    <div class="brand">Peekaboo Ghosts</div>
+    <div class="hint" id="hint">Open this link on a phone and tap Controller</div>
+  </div>
+  <div class="place" id="place">
+    <div class="sign" id="sign" hidden></div>
+    <div class="grid" id="grid"></div>
+  </div>
+  <div class="jars" id="jars"></div>
+</section>
+<div class="parade" id="parade" hidden></div>
+<div class="card" id="card" hidden></div>
+<div class="start" id="start" hidden>
+  <button id="startBtn">Start!</button>
+  <p>Starting turns the sound on. Without phones: press 1–4 to peek for a player, and Space to start.</p>
+</div>
+
+<section class="view pad" id="pad" hidden>
+  <div class="pad-top">
+    <div class="status"><span class="dot" id="dot"></span><span id="statusText">Looking for the TV…</span></div>
+    <button class="small-btn" id="swap" hidden>Change</button>
+  </div>
+  <div class="who" id="who">
+    <h2>Who are you?</h2>
+    <div class="whogrid" id="whogrid"></div>
+  </div>
+  <div class="play" id="play" hidden>
+    <div class="words">
+      <h2 class="pad-title" id="padTitle">Ready?</h2>
+      <div class="mine" id="mine"></div>
+      <button class="bigact" id="actBtn" hidden></button>
+    </div>
+    <div class="pgrid" id="pgrid" hidden></div>
+  </div>
+</section>
+
+<script src="peerjs.min.js?v=7e60515a"></script>
+<script src="qrcode.js?v=4c79be16"></script>
+<script src="net.js?v=a02f2e46"></script>
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+
+  const PLAYERS = [
+    { name: "Pumpkin", face: "🎃", color: "#ff8a1f", glow: "#ff8a1f" },
+    { name: "Ghost",   face: "👻", color: "#c9ecff", glow: "#4fc3f7" },
+    { name: "Bat",     face: "🦇", color: "#b97bff", glow: "#b97bff" },
+    { name: "Owl",     face: "🦉", color: "#9cf26b", glow: "#7ee04a" },
+  ];
+  // each child's ghosts wear a thick glowing outline in their colour (clearer than tinting a white ghost)
+  PLAYERS.forEach(p => { const c = p.glow; p.tint = `drop-shadow(0 0 .025em ${c}) drop-shadow(0 0 .025em ${c}) drop-shadow(0 0 .025em ${c}) drop-shadow(0 0 .1em ${c})`; });
+  const okPlayer = (p) => Number.isInteger(p) && p >= 0 && p < PLAYERS.length;
+  const ghostHTML = (p) => `<span class="ghost"><span style="filter:${PLAYERS[p].tint}">👻</span><span class="b">${PLAYERS[p].face}</span></span>`;
+
+  // four places, nine hiding spots each, laid out 3 × 3 on the TV and the phone
+  const PLACES = [
+    { name: "Spooky Garden", spots: [{ e: "🌳" }, { e: "🎃" }, { k: "bush" }, { e: "🍂" }, { e: "🏚️" }, { e: "🌻" }, { e: "📦" }, { k: "bush" }, { e: "🌲" }] },
+    { name: "Friendly Graveyard", spots: [{ k: "stone", t: "BOO" }, { e: "🌳" }, { k: "stone", t: "HI!" }, { e: "⛲" }, { e: "🎃" }, { k: "bush" }, { k: "stone", t: "Zzz" }, { e: "🍂" }, { k: "stone", t: "RIP" }] },
+    { name: "Haunted House", indoors: true, spots: [{ e: "🛏️" }, { e: "🚪" }, { e: "🕰️" }, { e: "🛋️" }, { e: "🎁" }, { e: "🧸" }, { e: "📦" }, { e: "🗄️" }, { e: "🎹" }] },
+    { name: "Pumpkin Patch", spots: [{ e: "🎃" }, { e: "🌾" }, { e: "🎃" }, { e: "🚜" }, { e: "🎃" }, { e: "🌽" }, { e: "🎃" }, { e: "🌾" }, { e: "🎃" }] },
+  ];
+  const objHTML = (s) => s.k === "stone" ? `<span class="obj stone"><b>${s.t}</b></span>` : s.k === "bush" ? `<span class="obj bush"><i></i></span>` : `<span class="obj">${s.e}</span>`;
+  // not a ghost? something silly is hiding there instead
+  const SILLY = [
+    { e: "🐱", line: "Zzz… Just a sleepy cat!" }, { e: "🐸", line: "Ribbit! I'm a frog, not a ghost!" }, { e: "🧦", line: "Just a smelly sock!" },
+    { e: "🩲", line: "Whose pants are these?!" }, { e: "🎩", line: "That's my hat! I've been looking for that!" }, { e: "🐭", line: "Squeak! Not me!" },
+    { e: "🐌", line: "Hello! I'm a snail!" }, { e: "🦔", line: "Just a prickly hedgehog!" }, { e: "🐛", line: "Wiggle wiggle! No ghosts here!" },
+    { e: "🦉", line: "Hoo's there? Not a ghost!" }, { e: "🍪", line: "Ooh, a cookie! But no ghost." }, { e: "🐶", line: "Woof! Still no ghost!" },
+  ];
+  const shuffle = (a) => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+  const pick = (a) => a[Math.floor(Math.random() * a.length)];
+  const near = (a, b) => a !== b && Math.abs((a % 3) - (b % 3)) <= 1 && Math.abs(Math.floor(a / 3) - Math.floor(b / 3)) <= 1;
+
+  // ---------- Audio and voice ----------
+  let ac = null;
+  function audio() {
+    if (!ac) { try { ac = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { ac = null; } }
+    if (ac && ac.state === "suspended") ac.resume().catch(() => {});
+    return ac;
+  }
+  function tone(type, f0, f1, dur, vol, delay = 0) {
+    const a = ac; if (!a) return;
+    const t = a.currentTime + delay;
+    const o = a.createOscillator(), g = a.createGain();
+    o.type = type; o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(f1, t + dur);
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + 0.01); g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+    o.connect(g).connect(a.destination); o.start(t); o.stop(t + dur + .05);
+  }
+  const rustle = () => { for (let i = 0; i < 4; i++) tone("sawtooth", 300 + Math.random() * 300, 120, .07, .05, i * .07); };
+  const boo = () => { tone("sine", 600, 250, .55, .25); tone("triangle", 880, 1320, .2, .15, .5); };
+  const meh = () => tone("square", 330, 220, .2, .06);
+  const fanfare = () => [523, 659, 784, 1047].forEach((f, i) => tone("triangle", f, f, i === 3 ? .6 : .16, .22, i * .1));
+  const cheerSound = () => { tone("triangle", 660, 990, .15, .15); tone("triangle", 880, 1320, .2, .15, .12); };
+  function speak(text, mood = "happy", interrupt = true) {
+    try {
+      const s = window.speechSynthesis; if (!s) return;
+      if (!interrupt && s.speaking) return;
+      s.cancel();
+      const u = new SpeechSynthesisUtterance(text);
+      const m = { boo: [1.7, 1.0], happy: [1.4, 1.1], grump: [0.5, 0.9] }[mood] || [1, 1];
+      u.pitch = m[0]; u.rate = m[1]; u.lang = "en-GB";
+      s.speak(u);
+    } catch (e) {}
+  }
+
+  // ---------- Home ----------
+  $("goScreen").onclick = () => { $("home").hidden = true; startScreen(); };
+  $("goPad").onclick = () => { $("home").hidden = true; startPad(Net.codeFromUrl()); };
+  if (Net.codeFromUrl()) { $("home").hidden = true; startPad(Net.codeFromUrl()); }
+  else if (Net.tvFromUrl()) { $("home").hidden = true; startScreen(); }
+
+  // =====================================================================
+  // BIG SCREEN
+  // =====================================================================
+  function startScreen() {
+    document.body.classList.add("on-screen");
+    Net.tvMenuButton();
+    $("screen").hidden = false; $("start").hidden = false;
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const P = PLAYERS.map((pl, i) => ({ i, pl, here: false, local: false, hide: [], peeks: Array(9).fill(""), total: 0, jar: null, lastCheer: 0 }));
+    let phase = "lobby", placeNo = -1, started = false, playersKey = "", busy = false, per = 3;
+
+    const present = () => { const h = P.filter(x => x.here || x.local); return h.length ? h : [P[0]]; };
+    const spotEl = (k) => $("grid").children[k];
+
+    function renderJars() {
+      const box = $("jars"); box.innerHTML = "";
+      for (const x of present()) {
+        const d = document.createElement("div");
+        d.className = "jar"; d.style.setProperty("--c", x.pl.color);
+        d.innerHTML = `<span class="who">${x.pl.face}</span><span class="slots"></span>`;
+        x.jar = d; box.appendChild(d); drawJar(x);
+      }
+    }
+    function drawJar(x) {
+      if (!x.jar) return;
+      const got = x.peeks.filter(v => v === "g").length, n = x.hide.length || per;
+      x.jar.querySelector(".slots").innerHTML = Array.from({ length: n }, (_, k) => `<span class="${k < got ? "got" : ""}">${ghostHTML(x.i)}</span>`).join("");
+    }
+
+    function newPlace() {
+      placeNo++;
+      phase = "hunt";
+      const place = PLACES[placeNo % PLACES.length], list = present();
+      per = list.length <= 2 ? 3 : 2;                         // the same number of ghosts for everyone
+      for (const x of P) { x.hide = []; x.peeks = Array(9).fill(""); }
+      for (const x of list) x.hide = shuffle([0, 1, 2, 3, 4, 5, 6, 7, 8]).slice(0, per);   // each child's ghosts hide in their own spots
+      document.body.classList.toggle("indoors", !!place.indoors);
+      $("grid").innerHTML = place.spots.map((s, k) => `<div class="spot" data-k="${k}">${objHTML(s)}</div>`).join("");
+      [...$("grid").children].forEach((el, k) => el.addEventListener("pointerdown", () => { if (started) peek(present()[0].i, k); }));
+      $("sign").hidden = false; $("sign").textContent = "📍 " + place.name;
+      hideCard(); renderJars();
+      speak(`Welcome to the ${place.name}! Find your ghosts!`);
+      share();
+    }
+    function goNext(fn) {
+      busy = true;
+      $("place").classList.add("fade");
+      setTimeout(() => { fn(); $("place").classList.remove("fade"); busy = false; share(); }, reduce ? 10 : 650);
+    }
+
+    // ----- peeking -----
+    function peek(p, k) {
+      const x = P[p];
+      if (phase !== "hunt" || busy || !x || !x.hide.length || !(k >= 0 && k < 9) || x.peeks[k]) return;
+      const el = spotEl(k); if (!el) return;
+      const ghost = x.hide.includes(k);
+      const left = x.hide.filter(h => x.peeks[h] !== "g" && h !== k);
+      x.peeks[k] = ghost ? "g" : (left.some(h => near(h, k)) ? "w" : "c");
+      el.classList.add("lift"); rustle();
+      clearTimeout(el._t); el._t = setTimeout(() => el.classList.remove("lift"), 1700);
+      const pop = document.createElement("div");
+      pop.className = ghost ? "found-pop" : "miss-pop";
+      const list = present(), idx = list.indexOf(x);
+      pop.style.setProperty("--dx", ((idx - (list.length - 1) / 2) * 6) + "vh");
+      if (ghost) {
+        pop.innerHTML = ghostHTML(p);
+        boo(); say(el, `Boo! ${x.pl.name} found me!`); speak("Boo! You found me!", "boo");
+        setTimeout(() => flyToJar(x, el), reduce ? 50 : 1000);
+      } else {
+        const s = pick(SILLY);
+        pop.innerHTML = `${s.e}<span class="clue">${x.peeks[k] === "w" ? "🔥" : "❄️"}</span>`;
+        meh(); say(el, s.line); speak(s.line, "happy", false);
+      }
+      el.appendChild(pop); setTimeout(() => pop.remove(), 2300);
+      share();
+    }
+    function say(spot, text) {
+      if (spot._say) spot._say.remove();
+      const r = spot.getBoundingClientRect();
+      const b = document.createElement("div"); b.className = "say"; b.textContent = text;
+      document.body.appendChild(b);
+      const w = b.offsetWidth;
+      b.style.left = Math.max(w / 2 + 8, Math.min(innerWidth - w / 2 - 8, r.left + r.width / 2)) + "px"; b.style.top = Math.max(b.offsetHeight + 8, r.top + 4) + "px";
+      spot._say = b; setTimeout(() => { b.remove(); if (spot._say === b) spot._say = null; }, 2400);
+    }
+    function centre(el) { const r = el.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; }
+    const at = (p, s = 1, r = 0) => `translate(${p.x}px, ${p.y}px) translate(-50%, -50%) rotate(${r}deg) scale(${s})`;
+    function flyToJar(x, spot) {
+      x.total++;
+      if (!x.jar) { drawJar(x); afterFind(); return; }
+      const f = document.createElement("span"); f.className = "flyer"; f.innerHTML = ghostHTML(x.i); document.body.appendChild(f);
+      const from = centre(spot), to = centre(x.jar), mid = { x: (from.x + to.x) / 2, y: Math.min(from.y, to.y) - innerHeight * .15 };
+      f.animate([{ transform: at(from) }, { transform: at(mid, 1.1, -15) }, { transform: at(to, .45, 10) }], { duration: reduce ? 1 : 900, easing: "ease-in-out", fill: "forwards" })
+        .finished.catch(() => {}).then(() => {
+          f.remove(); drawJar(x); tone("sine", 880, 1320, .15, .18);
+          x.jar.classList.remove("bump"); void x.jar.offsetWidth; x.jar.classList.add("bump");
+          afterFind();
+        });
+    }
+    function afterFind() {
+      share();
+      if (phase !== "hunt") return;
+      const list = present().filter(x => x.hide.length);
+      if (list.length && list.every(x => x.hide.every(h => x.peeks[h] === "g"))) {
+        phase = "between"; share();
+        setTimeout(() => {
+          fanfare();
+          const last = placeNo + 1 >= PLACES.length;
+          speak(last ? "You found every ghost! Ghost parade!" : "Everyone found their ghosts! Let's go somewhere else!");
+          setTimeout(() => last ? finale() : goNext(newPlace), 1800);
+        }, 900);
+      }
+    }
+    function cheer(p) {
+      const x = P[p]; if (!x || phase !== "hunt") return;
+      const now = performance.now(); if (now - x.lastCheer < 1200) return; x.lastCheer = now;
+      const waiting = present().filter(y => y !== x && y.hide.some(h => y.peeks[h] !== "g"));
+      if (!waiting.length || !x.jar) return;
+      const target = pick(waiting), from = centre(x.jar);
+      const c = document.createElement("div"); c.className = "cheer"; c.textContent = `${x.pl.face} 📣 You can do it, ${target.pl.name}!`;
+      c.style.left = from.x + "px"; c.style.top = (from.y - innerHeight * .1) + "px";
+      document.body.appendChild(c); setTimeout(() => c.remove(), 1700);
+      cheerSound(); speak(`You can do it, ${target.pl.name}!`, "happy", false);
+    }
+    function finale() {
+      phase = "done";
+      const list = present();
+      const par = $("parade"); par.hidden = false;
+      par.innerHTML = list.flatMap(x => Array.from({ length: Math.max(1, x.total) }, () => x.i))
+        .map((p, k) => `<span class="g" style="animation-delay:${-k * 0.55}s">${ghostHTML(p)}</span>`).join("");
+      showCard(`<h2>Ghost parade!</h2><p>${list.map(x => `${x.pl.face} found ${x.total}`).join(" · ")}</p><p style="opacity:.8">Tap Play again on a phone</p>`);
+      share();
+    }
+    function showCard(html) { $("card").innerHTML = html; $("card").hidden = false; }
+    function hideCard() { $("card").hidden = true; $("parade").hidden = true; $("parade").innerHTML = ""; }
+    function begin() {
+      if (!started || (phase !== "lobby" && phase !== "done")) return;
+      placeNo = -1; for (const x of P) x.total = 0;
+      if (phase === "done") goNext(newPlace); else newPlace();
+    }
+
+    const link = connectScreen({
+      onAct: (p, a) => {
+        if (!a || typeof a !== "object") return;
+        if (a.a === "peek") peek(p, Number(a.spot));
+        else if (a.a === "cheer") cheer(p);
+        else if (a.a === "start") begin();
+      },
+      onPlayers: (set) => {
+        const key = [...set].sort().join(",");
+        if (key === playersKey) return;
+        playersKey = key;
+        P.forEach(x => { x.here = set.has(x.i); });
+        renderJars(); afterFind(); share();
+      },
+    });
+    function share() {
+      const players = {};
+      for (const x of P) players[x.i] = { peeks: x.peeks.join(","), per: x.hide.length, total: x.total };
+      link.share({ phase, place: placeNo, players });
+    }
+
+    // local play (no phones)
+    window.addEventListener("keydown", (e) => {
+      if (!started) return;
+      if (["1", "2", "3", "4"].includes(e.key)) {
+        const x = P[Number(e.key) - 1];
+        if (!x.local) { x.local = true; renderJars(); share(); }
+        const open = [0, 1, 2, 3, 4, 5, 6, 7, 8].filter(k => !x.peeks[k]);
+        if (x.hide.length && x.hide.some(h => x.peeks[h] !== "g")) peek(x.i, pick(open)); else cheer(x.i);
+      } else if (e.key === " " || e.key === "Enter") { e.preventDefault(); begin(); }
+    });
+    $("startBtn").onclick = async () => {
+      audio(); $("start").hidden = true; started = true; boo();
+      try { if (navigator.wakeLock) await navigator.wakeLock.request("screen"); } catch (e) {}
+      try { if (document.documentElement.requestFullscreen) await document.documentElement.requestFullscreen(); } catch (e) {}
+    };
+    renderJars();
+    showCard(`<h2>Peekaboo Ghosts</h2><p>Little ghosts are hiding! Each hunter has their own colour to find.</p><p style="opacity:.8">Tap Let's look! on a phone to start</p>`);
+    share();
+  }
+
+  // =====================================================================
+  // CONTROLLER
+  // =====================================================================
+  function startPad(code) {
+    if (!code) { Net.askCode((c) => startPad(c)); return; }
+    $("pad").hidden = false; document.body.classList.add("on-pad");
+    let me = -1, last = null, gridKey = "";
+    try { const s = localStorage.getItem("peek-player"); if (s !== null && okPlayer(Number(s))) me = Number(s); } catch (e) {}
+    const link = connectPad(code, { onState });
+    const act = (a) => { if (me >= 0) link.act({ ...a, p: me }); };
+
+    PLAYERS.forEach((pl, i) => {
+      const b = document.createElement("button");
+      b.className = "pick"; b.id = "who-" + i; b.style.setProperty("--c", pl.color);
+      b.innerHTML = `${pl.face}<span>${pl.name}</span>`;
+      b.onclick = () => { audio(); boo(); choose(i); };
+      $("whogrid").appendChild(b);
+    });
+    function choose(i) {
+      me = i;
+      try { localStorage.setItem("peek-player", String(i)); } catch (e) {}
+      link.setMe(i);
+      $("who").hidden = true; $("play").hidden = false; $("swap").hidden = false;
+      gridKey = ""; render();
+    }
+    function showWho() { $("who").hidden = false; $("play").hidden = true; $("swap").hidden = true; }
+    $("swap").onclick = () => { audio(); showWho(); };
+
+    function mine() {
+      const m = last && last.players ? last.players[me] : null;
+      const peeks = m && typeof m.peeks === "string" ? m.peeks.split(",").slice(0, 9) : [];
+      while (peeks.length < 9) peeks.push("");
+      return { peeks, per: m ? Number(m.per) || 0 : 0, total: m ? Number(m.total) || 0 : 0 };
+    }
+    function othersBusy() {
+      if (!last || !last.players) return false;
+      return Object.entries(last.players).some(([p, m]) => Number(p) !== me && m && Number(m.per) > 0 && String(m.peeks || "").split(",").filter(v => v === "g").length < Number(m.per));
+    }
+    function render() {
+      if (me < 0 || !$("who").hidden) return;
+      const m = mine(), phase = last ? last.phase : null, got = m.peeks.filter(v => v === "g").length;
+      let title = "Looking for the TV…", grid = false, actText = "", actKind = "";
+      if (phase === "lobby") { title = "Ready to find some ghosts?"; actText = "Let's look! 👀"; actKind = "start"; }
+      else if (phase === "hunt" || phase === "between") {
+        if (!m.per) title = "You can join at the next place!";
+        else if (got < m.per) { title = "Where are your ghosts?"; grid = true; }
+        else if (phase === "hunt" && othersBusy()) { title = "You found them all! Cheer!"; grid = true; actText = "📣 Cheer!"; actKind = "cheer"; }
+        else { title = "Off somewhere new…"; grid = true; }
+      }
+      else if (phase === "done") { title = `You found ${m.total} ghosts! 🎉`; actText = "Play again!"; actKind = "start"; }
+      $("padTitle").textContent = title;
+      $("mine").innerHTML = m.per && phase !== "done" ? Array.from({ length: m.per }, (_, k) => `<span class="${k < got ? "got" : ""}">${ghostHTML(me)}</span>`).join("") : "";
+      const btn = $("actBtn"); btn.hidden = !actKind; btn.textContent = actText; btn.dataset.kind = actKind;
+      const box = $("pgrid"); box.hidden = !grid;
+      const place = PLACES[((Number(last && last.place) || 0) % PLACES.length + PLACES.length) % PLACES.length];
+      const key = (last ? last.place : "") + "|" + m.peeks.join(",");
+      if (grid && key !== gridKey) {
+        gridKey = key;
+        box.innerHTML = "";
+        place.spots.forEach((s, k) => {
+          const v = m.peeks[k];
+          const b = document.createElement("button");
+          b.className = "tile" + (v ? " peeked" : "") + (v === "g" ? " found" : ""); b.id = "spot-" + k;
+          b.style.setProperty("--c", PLAYERS[me].color);
+          b.innerHTML = objHTML(s) + (v === "g" ? `<span class="res">${ghostHTML(me)}</span>` : v ? `<span class="clue">${v === "w" ? "🔥" : "❄️"}</span>` : "");
+          b.setAttribute("aria-label", v ? "Already looked" : `Hiding place ${k + 1}`);
+          if (!v) b.addEventListener("pointerdown", (e) => {
+            e.preventDefault(); audio(); rustle();
+            try { navigator.vibrate && navigator.vibrate(25); } catch (err) {}
+            b.classList.add("wiggle"); act({ a: "peek", spot: k });
+          });
+          box.appendChild(b);
+        });
+      }
+    }
+    function onState(st) { if (!st || typeof st !== "object") return; last = st; render(); }
+    $("actBtn").addEventListener("click", () => {
+      audio();
+      const kind = $("actBtn").dataset.kind;
+      if (kind === "cheer") { cheerSound(); act({ a: "cheer" }); }
+      else if (kind === "start") { boo(); act({ a: "start" }); }
+    });
+
+    if (me >= 0) choose(me); else showWho();
+  }
+
+  // ---------- connection START ----------
+  function connectScreen({ onAct, onPlayers }) {
+    let net = null, last = null;
+    const who = new Map();
+    const update = () => { Net.setCount(who.size); onPlayers(new Set([...who.values()].filter(okPlayer))); };
+    $("hint").textContent = "Getting ready for phones…";
+    net = Net.host("peek", {
+      onReady: (code) => { Net.joinCard(code); $("hint").hidden = true; },
+      onJoin: (c) => { who.set(c, -1); update(); if (last) net.send(c, last); },
+      onLeave: (c) => { who.delete(c); update(); },
+      onMessage: (m, c) => {
+        const p = Number(m.p); if (!okPlayer(p)) return;
+        if (who.get(c) !== p) { who.set(c, p); update(); }
+        if (m.t === "act") onAct(p, m);
+      },
+      onProblem: () => { $("hint").hidden = false; $("hint").textContent = "Phones can't connect right now. Check the internet connection and reload."; },
+    });
+    return { share(state) { last = { t: "state", ...state }; if (net) net.broadcast(last); } };
+  }
+  function connectPad(code, { onState }) {
+    let me = -1, link = null;
+    link = Net.join("peek", code, {
+      onStatus: (s) => {
+        const ok = s === "open";
+        $("dot").classList.toggle("ok", ok);
+        $("statusText").textContent = ok ? "Connected" : s === "notfound" ? `Looking for game ${code}…` : "Connecting to the TV…";
+        if (ok && me >= 0) link.send({ t: "hello", p: me });
+      },
+      onMessage: (m) => { if (m.t === "state") onState(m); },
+    });
+    Net.padMenuButton(link);
+    return {
+      act(a) { link.send({ t: "act", ...a }); },
+      setMe(p) { me = p; link.send({ t: "hello", p }); },
+    };
+  }
+  // ---------- connection END ----------
+})();
+</script>
+
+</body>
+</html>
