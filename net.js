@@ -19,11 +19,37 @@ window.Net = (() => {
 
   let current = null; // the TV's host connection, if this page is the TV
 
+  // Address-lookup (STUN) servers help devices find each other across routers; the relay (TURN) is the last resort.
+  const ICE = { iceServers: [
+    { urls: ["stun:stun.l.google.com:19302", "stun:stun1.l.google.com:19302", "stun:stun2.l.google.com:19302"] },
+    { urls: "stun:stun.cloudflare.com:3478" },
+    { urls: ["turn:eu-0.turn.peerjs.com:3478", "turn:us-0.turn.peerjs.com:3478"], username: "peerjs", credential: "peerjsp" },
+  ], sdpSemantics: "unified-plan" };
+
+  // A plain-words help panel for a phone that can't connect, saying what's wrong and what to try.
+  function help(kind, code) {
+    let box = document.getElementById("netHelp");
+    if (!kind) { if (box) box.hidden = true; return; }
+    if (!box) {
+      box = document.createElement("div"); box.id = "netHelp";
+      box.innerHTML = '<div class="nh-text"></div><button type="button">Reload</button>';
+      box.querySelector("button").onclick = () => location.reload();
+      document.body.appendChild(box);
+    }
+    const text = {
+      server: "Can't reach the game server. Check this phone has internet. If it does, turn off any ad blocker or VPN, and set Private DNS to Off or Automatic (Android: Settings → Network & internet → Private DNS), then reload.",
+      link: "Found the TV but can't connect to it. Put this phone on the same Wi-Fi as the TV (not mobile data), then reload.",
+      notfound: `Can't find game ${code}. Check the code on the TV matches, and that the TV page is still open.`,
+    }[kind];
+    box.querySelector(".nh-text").textContent = text;
+    box.hidden = false;
+  }
+
   function host(game, { onMessage, onJoin, onLeave, onReady, onProblem } = {}) {
     const conns = new Set();
     let peer, code = savedCode() || newCode(), tries = 0;
     function start() {
-      peer = new Peer(peerId(game, code));
+      peer = new Peer(peerId(game, code), { config: ICE });
       peer.on("open", () => { tries = 0; saveCode(code); onReady && onReady(code); });
       peer.on("connection", (c) => {
         c.on("open", () => { conns.add(c); onJoin && onJoin(c); });
@@ -64,17 +90,28 @@ window.Net = (() => {
   }
 
   function join(game, code, { onMessage, onStatus } = {}) {
-    const peer = new Peer();
-    let conn = null, open = false, timer = 0;
+    const peer = new Peer({ config: ICE });
+    let conn = null, open = false, timer = 0, linkTimer = 0, stuck = 0, notFound = 0;
     const status = (s) => onStatus && onStatus(s);
+    // can't even reach the game server after a while? say so
+    let serverTimer = setTimeout(() => { if (!peer.open && !open) help("server", code); }, 10000);
     function retry(ms) { clearTimeout(timer); timer = setTimeout(connect, ms); }
     function connect() {
       if (peer.destroyed) return;
       if (peer.disconnected) { try { peer.reconnect(); } catch (e) {} return; }
+      clearTimeout(serverTimer);
       status("connecting");
       const c = peer.connect(peerId(game, code), { reliable: true });
       conn = c;
-      c.on("open", () => { if (conn !== c) return; open = true; status("open"); });
+      // a link that stalls part-way never says so: give up after a while and try again
+      clearTimeout(linkTimer);
+      linkTimer = setTimeout(() => {
+        if (conn !== c || open) return;
+        if (++stuck >= 2) help("link", code);
+        try { c.close(); } catch (e) {}
+        conn = null; status("lost"); retry(500);
+      }, 15000);
+      c.on("open", () => { if (conn !== c) return; clearTimeout(linkTimer); open = true; stuck = 0; help(null); status("open"); });
       c.on("data", (d) => {
         if (!d || typeof d !== "object") return;
         if (d.t === "goto" && (d.to === "menu" || GAMES.includes(d.to))) {
@@ -90,8 +127,8 @@ window.Net = (() => {
     peer.on("disconnected", () => setTimeout(() => { try { if (!peer.destroyed) peer.reconnect(); } catch (e) {} }, 1500));
     peer.on("error", (e) => {
       open = false;
-      if (e.type === "peer-unavailable") { status("notfound"); retry(1500); }
-      else { status("lost"); retry(2500); }
+      if (e.type === "peer-unavailable") { status("notfound"); notFound++; if (notFound >= 5) help("notfound", code); retry(1500); }
+      else { if (["network", "server-error", "socket-error", "socket-closed"].includes(e.type)) help("server", code); status("lost"); retry(2500); }
     });
     return {
       send(m) { if (conn && open) { try { conn.send(m); } catch (e) {} } },
@@ -196,6 +233,11 @@ window.Net = (() => {
 .codebox button { font: 800 1.6rem "Baloo 2", system-ui, sans-serif; padding: .4rem 2.4rem; border-radius: 999px; border: 0; background: #ff8a1f; color: #1b0f33; }
 .codebox p { margin: 0; max-width: 30ch; opacity: .85; }
 body.on-screen .moon { display: none; }
+#netHelp { position: fixed; z-index: 20; left: max(12px, env(safe-area-inset-left, 0px)); right: max(12px, env(safe-area-inset-right, 0px)); bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+  display: flex; align-items: center; gap: .8rem; padding: .8rem 1rem; border-radius: 18px; background: #fff6e6; color: #1b0f33; box-shadow: 0 8px 0 rgba(0,0,0,.35);
+  font: 600 1rem/1.3 "Baloo 2", system-ui, sans-serif; }
+#netHelp .nh-text { flex: 1; min-width: 0; }
+#netHelp button { flex: none; font: 800 1.05rem "Baloo 2", system-ui, sans-serif; border: 0; border-radius: 999px; padding: .5rem 1.1rem; background: #ff8a1f; color: #1b0f33; }
 body.on-screen .topbar { justify-content: flex-start; align-items: center; gap: 1rem; box-sizing: border-box; padding-right: clamp(250px, 30vw, 400px); }
 `;
   document.head.appendChild(css);
