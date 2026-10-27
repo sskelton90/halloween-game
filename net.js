@@ -5,7 +5,7 @@ window.Net = (() => {
   const LETTERS = "ABCDEFGHJKMNPQRSTUVWXYZ";
   const newCode = () => Array.from({ length: 4 }, () => LETTERS[Math.floor(Math.random() * LETTERS.length)]).join("");
   const peerId = (game, code) => `familyparty-${game}-${code}`.toLowerCase();
-  const GAMES = ["bubble", "pumpkin", "race", "knock", "potion", "peek", "monster"];
+  const GAMES = ["bubble", "pumpkin", "race", "knock", "potion", "peek", "monster", "count"];
   const KEY = "familyparty-tv-code";
 
   function savedCode() { try { const c = sessionStorage.getItem(KEY); return c && /^[A-Z]{4}$/.test(c) ? c : null; } catch (e) { return null; } }
@@ -124,6 +124,8 @@ window.Net = (() => {
   function setCount(n) {
     const el = document.getElementById("jcCount");
     if (el) el.textContent = n ? `${n} phone${n > 1 ? "s" : ""} joined` : "No phones yet";
+    const card = document.getElementById("joinCard");
+    if (card) card.classList.toggle("compact", n > 0);   // shrink out of the way once someone has joined
   }
 
   // "Back to the games" button for the TV: phones follow automatically.
@@ -175,6 +177,12 @@ window.Net = (() => {
 #joinCard .jc-label { font-size: clamp(.9rem, 1.4vw, 1.2rem); opacity: .85; }
 #joinCard .jc-code { font-size: clamp(1.8rem, 3.6vw, 3rem); font-weight: 800; letter-spacing: .12em; line-height: 1.05; color: #ffd23f; }
 #joinCard .jc-count { font-size: clamp(.8rem, 1.2vw, 1rem); opacity: .8; }
+#joinCard { transition: padding .3s; }
+#joinCard .jc-qr { transition: width .3s; }
+#joinCard.compact { padding: .35rem .7rem .35rem .35rem; gap: .5rem; border-radius: 16px; }
+#joinCard.compact .jc-qr { width: clamp(48px, 4.6vw, 70px); border-radius: 8px; padding: 2px; }
+#joinCard.compact .jc-label { display: none; }
+#joinCard.compact .jc-code { font-size: clamp(1.1rem, 2vw, 1.7rem); }
 .menu-btn { pointer-events: auto; font: 800 clamp(1rem, 1.8vw, 1.5rem) "Baloo 2", system-ui, sans-serif; color: #fff6e6; cursor: pointer;
   padding: .3rem 1.1rem; border-radius: 999px; border: 2px solid rgba(255, 246, 230, .4); background: rgba(27, 15, 51, .6); }
 .menu-btn:focus-visible, .games-btn:focus-visible { outline: 4px solid #fff3b8; outline-offset: 3px; }

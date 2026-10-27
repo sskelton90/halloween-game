@@ -1,0 +1,590 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<script>
+/* If something fails to load (an old cached file, a dropped connection), say so instead of showing a blank screen. */
+(function () {
+  var shown = false;
+  function show(msg) {
+    if (shown) return; shown = true;
+    var d = document.createElement("div");
+    d.setAttribute("style", "position:fixed;inset:0;z-index:99;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:24px;text-align:center;background:#1b0f33;color:#fff6e6;font:500 18px system-ui,sans-serif");
+    d.innerHTML = '<div style="font-size:56px">🎃</div><div style="font:800 26px system-ui,sans-serif">Oops, part of the game didn\'t load</div><div style="max-width:30em;opacity:.85">Reload to try again. If it keeps happening, check the internet connection.</div><button style="font:800 22px system-ui,sans-serif;padding:10px 32px;border-radius:999px;border:0;background:#ff8a1f;color:#1b0f33">Reload</button><div style="font-size:13px;opacity:.55;max-width:40em;word-break:break-word"></div>';
+    d.lastChild.textContent = String(msg || "");
+    d.querySelector("button").onclick = function () { location.reload(); };
+    (document.body || document.documentElement).appendChild(d);
+  }
+  // Only step in when the screen would otherwise be blank: a missing file, or a crash that left nothing showing.
+  function blank() {
+    var els = document.querySelectorAll("#home, #screen, #pad, .games");
+    for (var i = 0; i < els.length; i++) if (!els[i].hidden) return false;
+    return true;
+  }
+  window.addEventListener("error", function (e) {
+    var t = e.target;
+    if (t && t.tagName === "SCRIPT") { show("Couldn't load " + (t.getAttribute("src") || "a script")); return; }
+    var msg = e.message;
+    setTimeout(function () { if (blank()) show(msg); }, 0);
+  }, true);
+})();
+</script>
+<style>[hidden]{display:none!important}body{margin:0}</style>
+<title>Count the Cats</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&family=Griffy&display=swap">
+<style>
+/* Layout: one fence per child side by side on the TV, cats hopping up on each; phones are a big answer pad at the child's own level. */
+:root {
+  --night: #1b0f33;
+  --dusk: #3a1d63;
+  --glow: #6b3fa0;
+  --moon: #fff3b8;
+  --candy: #ff8a1f;
+  --slime: #9cf26b;
+  --ink: #1b0f33;
+  --text: #fff6e6;
+  --wood: #8a5a34;
+  --wood-dark: #5e3a1f;
+  --glass: rgba(255, 246, 230, 0.12);
+  --glass-line: rgba(255, 246, 230, 0.32);
+  --display: "Griffy", "Baloo 2", "Comic Sans MS", cursive;
+  --body: "Baloo 2", "Arial Rounded MT Bold", "Trebuchet MS", system-ui, sans-serif;
+  color-scheme: dark;
+}
+html, body { height: 100%; }
+body {
+  background: var(--night); color: var(--text); font-family: var(--body);
+  overflow: hidden; -webkit-user-select: none; user-select: none;
+  -webkit-tap-highlight-color: transparent; touch-action: manipulation;
+}
+.sky { position: fixed; inset: 0; z-index: 0;
+  background:
+    radial-gradient(80% 25% at 50% 104%, #2c5a1e 0 60%, transparent 61%),
+    linear-gradient(180deg, var(--night) 0%, var(--dusk) 60%, var(--glow) 100%); }
+.moon {
+  position: fixed; z-index: 0; top: calc(6vh + env(safe-area-inset-top, 0px)); right: max(6vw, env(safe-area-inset-right, 0px));
+  width: min(18vmin, 180px); aspect-ratio: 1; max-width: 100%; border-radius: 50%;
+  background: radial-gradient(circle at 38% 35%, #fffbe0, var(--moon) 55%, #f3d97a);
+  box-shadow: 0 0 60px 20px rgba(255, 243, 184, 0.22);
+}
+.moon::before, .moon::after { content: ""; position: absolute; top: 38%; width: 10%; height: 14%; border-radius: 50%; background: #6b5a2a; }
+.moon::before { left: 32%; } .moon::after { right: 32%; }
+.moon i { position: absolute; left: 30%; right: 30%; top: 56%; height: 16%; border-bottom: .5vmin solid #6b5a2a; border-radius: 0 0 50% 50%; }
+body.on-pad .moon, body.on-screen .moon { display: none; }
+.view {
+  position: fixed; inset: 0; z-index: 1;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: calc(14px + env(safe-area-inset-top, 0px)) calc(14px + env(safe-area-inset-bottom, 0px));
+}
+button { font-family: var(--body); color: inherit; cursor: pointer; }
+button:focus-visible { outline: 4px solid var(--moon); outline-offset: 3px; }
+.dots { display: flex; flex-wrap: wrap; justify-content: center; gap: .18em; max-width: 3.4em; }
+.dots i { width: .5em; height: .5em; border-radius: 50%; background: currentColor; display: block; }
+
+/* ---------- Home ---------- */
+.home { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1.4rem; text-align: center; }
+.home h1 { margin: 0; font-family: var(--display); font-weight: 400; font-size: clamp(2.8rem, 11vw, 7rem); line-height: .95; color: var(--candy); text-wrap: balance; text-shadow: 0 6px 0 rgba(0,0,0,.35); }
+.home h1 span { display: block; color: var(--slime); font-size: .5em; }
+.home p { margin: 0; max-width: 34ch; font-size: 1.15rem; opacity: .9; }
+.cast { font-size: clamp(2.2rem, 8vw, 3.6rem); display: flex; gap: .4rem; }
+.cast span { animation: hop 1.2s ease-in-out infinite; display: inline-block; }
+.cast span:nth-child(2) { animation-delay: .15s; } .cast span:nth-child(3) { animation-delay: .3s; }
+@keyframes hop { 0%, 100% { transform: translateY(0); } 40% { transform: translateY(-12px); } }
+.choices { display: flex; flex-wrap: wrap; gap: 1rem; justify-content: center; width: 100%; max-width: 640px; }
+.choice {
+  flex: 1 1 240px; min-height: 130px; border-radius: 28px; border: 2px solid var(--glass-line);
+  background: var(--glass); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .2rem;
+  font-size: 1.6rem; font-weight: 800; transition: transform .12s;
+}
+.choice small { font-size: 1rem; font-weight: 500; opacity: .8; }
+.choice .big { font-size: 2.8rem; line-height: 1; }
+.choice:active { transform: scale(.96); }
+
+/* ---------- Big screen ---------- */
+.screen { display: flex; flex-direction: column; pointer-events: none; gap: 1vh; }
+.topbar { width: 100%; box-sizing: border-box; display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; flex-wrap: wrap; padding-right: min(22vmin, 200px); }
+.brand { font-family: var(--display); font-size: clamp(1.6rem, 3.4vw, 2.8rem); color: var(--candy); }
+.hint { font-size: clamp(.9rem, 1.6vw, 1.2rem); background: var(--glass); border: 1px solid var(--glass-line); border-radius: 999px; padding: .4rem 1rem; max-width: 100%; }
+.lanes { flex: 1; min-height: 0; display: flex; justify-content: center; align-items: stretch; gap: 2vw; padding-top: 6vh; }
+.lane { position: relative; flex: 1 1 0; min-width: 0; max-width: 46vw; display: flex; flex-direction: column; border-radius: 3vh; background: rgba(0,0,0,.22); border: .5vh solid var(--c); padding: 1.2vh 1vw; }
+.lane-top { display: flex; align-items: center; justify-content: center; gap: .6vw; font-weight: 800; font-size: clamp(1rem, 2.2vw, 1.9rem); }
+.lane-top .face { font-size: 1.5em; line-height: 1; }
+.lane-top .lvl { font-size: .7em; padding: .1em .7em; border-radius: 999px; background: var(--c); color: var(--ink); }
+.yard { position: relative; flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; }
+.rail { position: absolute; left: 0; right: 0; bottom: 18%; height: 30%; background: repeating-linear-gradient(90deg, var(--wood) 0 7%, var(--wood-dark) 7% 8.5%, transparent 8.5% 11%);
+  border-top: 1.4vh solid var(--wood-dark); border-radius: .6vh; opacity: .9; }
+.cats { position: relative; z-index: 2; display: grid; gap: 1vh .6vw; grid-template-columns: repeat(var(--cols, 5), auto); justify-content: center; align-content: center; }
+.slot { position: relative; width: var(--cat); height: var(--cat); display: flex; align-items: center; justify-content: center; font-size: calc(var(--cat) * .86); line-height: 1; }
+.critter { display: inline-block; animation: popin .4s cubic-bezier(.3, 1.6, .5, 1) backwards; }
+@keyframes popin { from { transform: translateY(60%) scale(.3); opacity: 0; } }
+.critter.jump { animation: catjump .45s ease-out; }
+@keyframes catjump { 40% { transform: translateY(-35%) scale(1.15); } }
+.num { position: absolute; left: 50%; top: -18%; transform: translateX(-50%); min-width: 1.4em; padding: 0 .3em; border-radius: 999px; background: #ffd23f; color: var(--ink);
+  font-weight: 800; font-size: calc(var(--cat) * .3); line-height: 1.4; text-align: center; animation: numpop .3s cubic-bezier(.3, 1.6, .5, 1); z-index: 3; }
+.num.no { background: #ff6b6b; }
+@keyframes numpop { from { transform: translateX(-50%) scale(.2); } }
+.cover { position: absolute; z-index: 4; left: -2%; right: -2%; top: 0; bottom: 0; border-radius: 1.6vh; display: flex; align-items: center; justify-content: center;
+  background: repeating-linear-gradient(90deg, var(--wood) 0 9%, var(--wood-dark) 9% 10.5%); transform: translateY(105%); opacity: 0; transition: transform .5s cubic-bezier(.3, 1.3, .5, 1), opacity .3s;
+  font-weight: 800; font-size: clamp(1rem, 2.4vw, 2rem); color: #fff6e6; text-shadow: 0 .3vh 0 rgba(0,0,0,.5); }
+.lane.hidden .cover { transform: none; opacity: 1; }
+.lane-msg { min-height: 2.6em; display: flex; align-items: center; justify-content: center; text-align: center; font-weight: 800; font-size: clamp(1rem, 2.3vw, 2rem); line-height: 1.1; text-wrap: balance; }
+.lane-msg.good { color: var(--slime); } .lane-msg.oops { color: #ffd23f; }
+.lane.conga .critter { animation: conga .5s ease-in-out infinite; }
+@keyframes conga { 0%, 100% { transform: translateY(0) rotate(-10deg); } 50% { transform: translateY(-30%) rotate(10deg); } }
+.say { position: absolute; z-index: 5; left: 50%; bottom: 102%; transform: translateX(-50%); white-space: nowrap; background: var(--text); color: var(--ink); font-weight: 800;
+  font-size: calc(var(--cat) * .26); padding: .2em .6em; border-radius: 1em; border: .25vh solid var(--ink); }
+.start { position: fixed; inset: 0; z-index: 7; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1.2rem;
+  background: rgba(27, 15, 51, .6); text-align: center; pointer-events: auto; padding-inline: 16px; }
+.start button { font-size: clamp(2rem, 5vw, 3.5rem); font-weight: 800; padding: .5rem 2.4rem; border-radius: 999px; border: 0; background: var(--candy); color: var(--ink); box-shadow: 0 8px 0 rgba(0,0,0,.4); }
+.start p { margin: 0; font-size: clamp(1rem, 2vw, 1.4rem); max-width: 46ch; }
+
+/* ---------- Controller ---------- */
+.pad { display: flex; flex-direction: column; align-items: center; gap: .9rem; height: 100dvh; box-sizing: border-box; }
+.pad-top { width: 100%; display: flex; justify-content: space-between; align-items: center; gap: .6rem; }
+.status { font-size: .95rem; display: flex; align-items: center; gap: .45rem; min-width: 0; flex: 1; }
+.dot { width: 12px; height: 12px; border-radius: 50%; background: var(--candy); flex: none; }
+.dot.ok { background: var(--slime); }
+.small-btn { background: var(--glass); border: 1px solid var(--glass-line); border-radius: 999px; padding: .4rem .9rem; font-size: .95rem; font-weight: 700; flex: none; }
+.who, .levels { flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 1rem; width: 100%; }
+.who h2, .levels h2 { margin: 0; text-align: center; font-family: var(--display); font-weight: 400; font-size: 2.2rem; color: var(--candy); }
+.whogrid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; width: min(520px, 100%, calc(100dvh - 12rem)); margin-inline: auto; }
+.pick { aspect-ratio: 1; max-width: 100%; border-radius: 32px; border: 0; background: var(--c);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 4.2rem; line-height: 1; box-shadow: inset 0 -10px 0 rgba(0,0,0,.2); }
+.pick span { font-size: 1.3rem; font-weight: 800; color: var(--ink); margin-top: .3rem; }
+.levelgrid { display: grid; gap: 1rem; width: min(520px, 100%); margin-inline: auto; }
+.lvlbtn { border: 0; border-radius: 28px; padding: 1.2rem 1rem; display: flex; align-items: center; gap: 1rem; text-align: left; background: var(--glass); border: 3px solid var(--glass-line); }
+.lvlbtn .pic { font-size: 3rem; line-height: 1; flex: none; }
+.lvlbtn b { display: block; font-size: 1.7rem; }
+.lvlbtn small { font-size: 1.05rem; opacity: .85; }
+.lvlbtn.on { border-color: var(--slime); background: rgba(156, 242, 107, .15); }
+.play { flex: 1; min-height: 0; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1rem; text-align: center; }
+.pad-title { margin: 0; font-family: var(--display); font-weight: 400; font-size: clamp(1.8rem, 8vw, 2.8rem); line-height: 1.05; color: var(--candy); text-wrap: balance; }
+.answers { display: grid; gap: .8rem; width: min(100%, 560px); }
+.answers.little { grid-template-columns: 1fr 1fr; }
+.answers.big { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+.ans { border: 0; border-radius: 26px; background: var(--c, #ffd23f); color: var(--ink); font-weight: 800; box-shadow: inset 0 -8px 0 rgba(0,0,0,.2), 0 6px 0 rgba(0,0,0,.35);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .4rem; padding: .4rem; }
+.answers.little .ans { aspect-ratio: .85; font-size: clamp(3.4rem, 18vw, 6rem); line-height: 1; }
+.answers.little .ans .dots { font-size: clamp(1.2rem, 6vw, 2rem); }
+.answers.big .ans { aspect-ratio: 1; font-size: clamp(1.8rem, 8.5vw, 3rem); line-height: 1; }
+.ans:active { transform: translateY(4px); box-shadow: inset 0 -8px 0 rgba(0,0,0,.2), 0 2px 0 rgba(0,0,0,.35); }
+.answers.busy .ans { opacity: .35; }
+.stars { font-weight: 800; font-size: 1.3rem; display: flex; align-items: center; gap: .4rem; }
+.stars b { font-size: 1.7rem; }
+.stars.pop { animation: starpop .5s ease-out 2; }
+@keyframes starpop { 50% { transform: scale(1.25); } }
+@media (orientation: landscape) {
+  .whogrid { grid-template-columns: repeat(4, minmax(0, 1fr)); width: min(900px, 100%, calc((100dvh - 10rem) * 4 + 3rem)); }
+  .levelgrid { grid-template-columns: 1fr 1fr; width: min(900px, 100%); }
+  .answers.little { width: min(100%, 560px, calc((100dvh - 12rem) * 1.7)); }
+  .answers.big { width: min(100%, 760px, calc((100dvh - 12rem) * 2.5)); }
+}
+@media (orientation: landscape) and (max-height: 500px) {
+  .pick { font-size: 2.6rem; border-radius: 22px; }
+  .pick span { font-size: 1rem; }
+  .who h2, .levels h2, .pad-title { font-size: 1.5rem; }
+  .lvlbtn { padding: .6rem .8rem; } .lvlbtn .pic { font-size: 2rem; } .lvlbtn b { font-size: 1.3rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cast span, .lane.conga .critter, .stars.pop { animation: none !important; }
+  .critter, .critter.jump, .num { animation-duration: .01s !important; }
+  .cover { transition: none; }
+}
+</style>
+</head>
+<body>
+
+<div class="sky"></div>
+<div class="moon" aria-hidden="true"><i></i></div>
+
+<section class="view home" id="home">
+  <div class="cast" aria-hidden="true"><span>🐈</span><span>🐈</span><span>🐈</span></div>
+  <h1>Count the<span>Cats</span></h1>
+  <p>Open this page on the TV and tap Big screen. Then scan the QR code on the TV with each phone.</p>
+  <div class="choices">
+    <button class="choice" id="goScreen"><span class="big">📺</span>Big screen<small>The TV or laptop</small></button>
+    <button class="choice" id="goPad"><span class="big">📱</span>Controller<small>One per counter</small></button>
+  </div>
+</section>
+
+<section class="view screen" id="screen" hidden>
+  <div class="topbar">
+    <div class="brand">Count the Cats</div>
+    <div class="hint" id="hint">Open this link on a phone and tap Controller</div>
+  </div>
+  <div class="lanes" id="lanes"></div>
+</section>
+<div class="start" id="start" hidden>
+  <button id="startBtn">Start!</button>
+  <p>Starting turns the sound on. Without phones: press 1–4 to answer for that player (it picks the right answer).</p>
+</div>
+
+<section class="view pad" id="pad" hidden>
+  <div class="pad-top">
+    <div class="status"><span class="dot" id="dot"></span><span id="statusText">Looking for the TV…</span></div>
+    <button class="small-btn" id="lvlBtn" hidden>Level</button>
+    <button class="small-btn" id="swap" hidden>Change</button>
+  </div>
+  <div class="who" id="who">
+    <h2>Who are you?</h2>
+    <div class="whogrid" id="whogrid"></div>
+  </div>
+  <div class="levels" id="levels" hidden>
+    <h2>How big a counter are you?</h2>
+    <div class="levelgrid">
+      <button class="lvlbtn" id="lvl-little"><span class="pic">🐾</span><span><b>Little</b><small>1 to 3 cats that stay still. Pick from two.</small></span></button>
+      <button class="lvlbtn" id="lvl-big"><span class="pic">🐈</span><span><b>Big</b><small>Up to 10 cats that hide quickly. Watch out for sneaky dogs!</small></span></button>
+    </div>
+  </div>
+  <div class="play" id="play" hidden>
+    <h2 class="pad-title" id="padTitle">How many cats?</h2>
+    <div class="answers" id="answers"></div>
+    <div class="stars" id="stars"><b>⭐</b><span id="starN">0</span> stars</div>
+  </div>
+</section>
+
+<script src="peerjs.min.js?v=7e60515a"></script>
+<script src="qrcode.js?v=4c79be16"></script>
+<script src="net.js?v=c1f04bbf"></script>
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+
+  const PLAYERS = [
+    { name: "Pumpkin", face: "🎃", color: "#ff8a1f" },
+    { name: "Ghost",   face: "👻", color: "#c9ecff" },
+    { name: "Bat",     face: "🦇", color: "#b97bff" },
+    { name: "Owl",     face: "🦉", color: "#9cf26b" },
+  ];
+  const okPlayer = (p) => Number.isInteger(p) && p >= 0 && p < PLAYERS.length;
+  const CAT = "🐈";
+  // sneaky not-cats for the Big level
+  const DECOYS = [{ e: "🐶", line: "I'm a dog! Don't count me!" }, { e: "🦊", line: "I'm a fox, not a cat!" }, { e: "🐰", line: "Shh, I'm a bunny!" }];
+  const NUM_WORDS = ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten"];
+  const dotsHTML = (n) => `<span class="dots">${"<i></i>".repeat(n)}</span>`;
+  const pick = (a) => a[Math.floor(Math.random() * a.length)];
+  const shuffle = (a) => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+
+  // ---------- Audio and voice ----------
+  let ac = null;
+  function audio() {
+    if (!ac) { try { ac = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { ac = null; } }
+    if (ac && ac.state === "suspended") ac.resume().catch(() => {});
+    return ac;
+  }
+  function tone(type, f0, f1, dur, vol, delay = 0) {
+    const a = ac; if (!a) return;
+    const t = a.currentTime + delay;
+    const o = a.createOscillator(), g = a.createGain();
+    o.type = type; o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(f1, t + dur);
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + 0.01); g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+    o.connect(g).connect(a.destination); o.start(t); o.stop(t + dur + .05);
+  }
+  const meow = (k = 1) => { tone("sine", 700 * k, 900 * k, .12, .15); tone("sine", 900 * k, 550 * k, .25, .15, .1); };
+  const blip = (n) => tone("triangle", 440 + n * 55, 440 + n * 55, .14, .18);
+  const yay = () => [523, 659, 784, 1047].forEach((f, i) => tone("triangle", f, f, i === 3 ? .5 : .14, .2, i * .09));
+  const hmm = () => { tone("sine", 392, 330, .25, .15); tone("sine", 330, 392, .3, .15, .25); };
+  const slide = () => tone("sawtooth", 200, 120, .3, .05);
+  // one voice at a time: a counting child gets the voice, others count with chimes and numbers
+  let voiceUntil = 0;
+  const voiceFree = () => performance.now() > voiceUntil;
+  function speak(text, pitch = 1.3, rate = 1.05) {
+    try {
+      const s = window.speechSynthesis; if (!s) return;
+      const u = new SpeechSynthesisUtterance(text); u.pitch = pitch; u.rate = rate; u.lang = "en-GB";
+      s.speak(u);
+    } catch (e) {}
+  }
+
+  // ---------- Home ----------
+  $("goScreen").onclick = () => { $("home").hidden = true; startScreen(); };
+  $("goPad").onclick = () => { $("home").hidden = true; startPad(Net.codeFromUrl()); };
+  if (Net.codeFromUrl()) { $("home").hidden = true; startPad(Net.codeFromUrl()); }
+  else if (Net.tvFromUrl()) { $("home").hidden = true; startScreen(); }
+
+  // =====================================================================
+  // BIG SCREEN
+  // =====================================================================
+  function startScreen() {
+    document.body.classList.add("on-screen");
+    Net.tvMenuButton();
+    $("screen").hidden = false; $("start").hidden = false;
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const P = PLAYERS.map((pl, i) => ({ i, pl, here: false, local: false, level: "little", stars: 0, streak: 0, n: 0, critters: [], opts: [], phase: "wait", lane: null, timers: [] }));
+    let started = false, playersKey = "", layoutKey = "";
+
+    const present = () => { const h = P.filter(x => x.here || x.local); return h.length ? h : [P[0]]; };
+    function later(x, fn, ms) { const t = setTimeout(fn, ms); x.timers.push(t); return t; }
+    function stop(x) { x.timers.forEach(clearTimeout); x.timers = []; }
+
+    function layout() {
+      const list = present(), key = list.map(x => x.i + x.level).join(",");
+      if (key === layoutKey) return;
+      layoutKey = key;
+      const box = $("lanes");
+      for (const x of P) if (!list.includes(x) && x.lane) { stop(x); x.lane.remove(); x.lane = null; x.phase = "wait"; }
+      for (const x of list) {
+        if (!x.lane) {
+          const d = document.createElement("div");
+          d.className = "lane"; d.style.setProperty("--c", x.pl.color);
+          d.innerHTML = `<div class="lane-top"><span class="face">${x.pl.face}</span>${x.pl.name}<span class="lvl"></span></div>
+            <div class="yard"><div class="rail"></div><div class="cats"></div><div class="cover">🙈 Hiding! How many?</div></div><div class="lane-msg">Ready!</div>`;
+          x.lane = d;
+        }
+        box.appendChild(x.lane);
+        x.lane.querySelector(".lvl").textContent = x.level === "big" ? "Big" : "Little";
+      }
+      sizeCats();
+      if (started) list.forEach(x => { if (x.phase === "wait") newRound(x); });
+    }
+    function sizeCats() {
+      for (const x of present()) {
+        if (!x.lane) continue;
+        const w = x.lane.clientWidth || innerWidth / 2, cols = x.level === "big" ? 5 : 3;
+        const cat = Math.max(28, Math.min(innerHeight * .13, (w - 40) / (cols + .8)));
+        x.lane.style.setProperty("--cat", cat + "px");
+        x.lane.querySelector(".cats").style.setProperty("--cols", cols);
+      }
+    }
+    addEventListener("resize", sizeCats);
+
+    function msg(x, text, cls = "") { const m = x.lane.querySelector(".lane-msg"); m.textContent = text; m.className = "lane-msg " + cls; }
+
+    // ----- a new set of cats for one child -----
+    function newRound(x) {
+      if (!x.lane) return;
+      stop(x);
+      x.lane.classList.remove("hidden", "conga");
+      const big = x.level === "big";
+      const max = big ? Math.min(10, 5 + Math.floor(x.stars / 2)) : 3;
+      let n; do { n = 1 + Math.floor(Math.random() * max); } while (n === x.n && max > 1);
+      x.n = n;
+      const decoys = big && x.stars >= 2 && Math.random() < .35 ? (n >= 6 ? 2 : 1) : 0;
+      const slots = big ? 10 : 3;
+      const d = Math.min(decoys, slots - n);
+      // Little: cats sit in a neat row. Big: cats (and any sneaky dogs) sit in random spots.
+      const cells = Array(slots).fill(null);
+      const order = big ? shuffle([...Array(slots).keys()]) : [...Array(slots).keys()].slice(Math.floor((slots - n) / 2));
+      for (let k = 0; k < n; k++) cells[order[k]] = { cat: true };
+      for (let k = 0; k < d; k++) cells[order[n + k]] = { cat: false, decoy: pick(DECOYS) };
+      x.critters = cells;
+      x.opts = big ? [] : shuffle([n, pick([1, 2, 3].filter(v => v !== n))]);
+      const box = x.lane.querySelector(".cats");
+      box.innerHTML = cells.map((c, k) => `<div class="slot">${c ? `<span class="critter" style="animation-delay:${k * 0.08}s">${c.cat ? CAT : c.decoy.e}</span>` : ""}</div>`).join("");
+      meow(1 + Math.random() * .3);
+      x.phase = "look";
+      msg(x, big ? "Quick! How many cats?" : "How many cats?");
+      if (big) {
+        const peek = Math.max(1500, 4000 - x.streak * 300);
+        later(x, () => { if (x.phase === "look") { x.lane.classList.add("hidden"); slide(); x.phase = "hidden"; share(); } }, peek);
+      }
+      share();
+    }
+
+    // ----- answering, then counting together -----
+    function answer(x, a) {
+      if (!x.lane || (x.phase !== "look" && x.phase !== "hidden")) return;
+      a = Number(a); if (!(a >= 1 && a <= 10)) return;
+      stop(x);
+      x.phase = "count";
+      const right = a === x.n;
+      x.lane.classList.remove("hidden");
+      msg(x, right ? `${a}! Let's check…` : "Let's count together!", right ? "good" : "oops");
+      share();
+      const voice = voiceFree();
+      const cells = x.critters.map((c, k) => ({ c, el: x.lane.querySelectorAll(".slot")[k] })).filter(o => o.c);
+      const cats = cells.filter(o => o.c.cat), decoys = cells.filter(o => !o.c.cat);
+      const STEP = reduce ? 200 : 700;
+      if (voice) voiceUntil = performance.now() + (cats.length + decoys.length + 3) * STEP + 1500;
+      // sneaky ones get found first
+      decoys.forEach((o, k) => later(x, () => {
+        const b = document.createElement("span"); b.className = "num no"; b.textContent = "🙅"; o.el.appendChild(b);
+        const s = document.createElement("span"); s.className = "say"; s.textContent = o.c.decoy.line; o.el.appendChild(s); setTimeout(() => s.remove(), 1600);
+        if (voice) speak(o.c.decoy.line, 1.6);
+      }, 300 + k * 1100));
+      const start = 300 + decoys.length * 1100;
+      cats.forEach((o, k) => later(x, () => {
+        const b = document.createElement("span"); b.className = "num"; b.textContent = k + 1; o.el.appendChild(b);
+        const cr = o.el.querySelector(".critter"); cr.classList.remove("jump"); void cr.offsetWidth; cr.classList.add("jump");
+        blip(k + 1);
+        if (voice) speak(NUM_WORDS[k + 1], 1.3, 1.2);
+      }, start + k * STEP));
+      later(x, () => {
+        if (right) {
+          x.stars++; x.streak++;
+          msg(x, `Yes! ${x.n} cat${x.n > 1 ? "s" : ""}! ⭐`, "good"); yay();
+          if (voice) speak(`Yes! ${NUM_WORDS[x.n]} cat${x.n > 1 ? "s" : ""}! Well done ${x.pl.name}!`, 1.4);
+          if (x.stars % 5 === 0) { x.lane.classList.add("conga"); meow(1.2); later(x, () => meow(1.4), 300); }
+        } else {
+          x.streak = 0;
+          msg(x, `It's ${x.n}! Let's try another one.`, "oops"); hmm();
+          if (voice) speak(`It's ${NUM_WORDS[x.n]}! Let's try another one!`, 1.4);
+        }
+        share();
+        later(x, () => newRound(x), right && x.stars % 5 === 0 ? 3600 : 2400);
+      }, start + cats.length * STEP + 300);
+    }
+
+    const link = connectScreen({
+      onAct: (p, a) => {
+        const x = P[p]; if (!x || !a || typeof a !== "object") return;
+        if (a.a === "answer") answer(x, a.n);
+        else if (a.a === "level" && (a.level === "little" || a.level === "big") && a.level !== x.level) {
+          x.level = a.level; stop(x); x.phase = "wait"; x.streak = 0; layoutKey = ""; layout(); if (started) newRound(x); share();
+        }
+      },
+      onPlayers: (set) => {
+        const key = [...set].sort().join(",");
+        if (key === playersKey) return;
+        playersKey = key;
+        P.forEach(x => { x.here = set.has(x.i); });
+        layoutKey = ""; layout(); share();
+      },
+    });
+    function share() {
+      const players = {};
+      for (const x of P) players[x.i] = { level: x.level, stars: x.stars, phase: x.phase, opts: x.opts.join(",") };
+      link.share({ players });
+    }
+
+    window.addEventListener("keydown", (e) => {
+      if (!started || !["1", "2", "3", "4"].includes(e.key)) return;
+      const x = P[Number(e.key) - 1];
+      if (!x.local) { x.local = true; layoutKey = ""; layout(); share(); return; }
+      answer(x, x.n);
+    });
+    $("startBtn").onclick = async () => {
+      audio(); $("start").hidden = true; started = true; meow();
+      present().forEach(x => newRound(x));
+      try { if (navigator.wakeLock) await navigator.wakeLock.request("screen"); } catch (e) {}
+      try { if (document.documentElement.requestFullscreen) await document.documentElement.requestFullscreen(); } catch (e) {}
+    };
+    layout(); share();
+  }
+
+  // =====================================================================
+  // CONTROLLER
+  // =====================================================================
+  function startPad(code) {
+    if (!code) { Net.askCode((c) => startPad(c)); return; }
+    $("pad").hidden = false; document.body.classList.add("on-pad");
+    let me = -1, level = null, last = null, lastStars = -1, answersKey = "", lastSync = 0;
+    try { const s = localStorage.getItem("count-player"); if (s !== null && okPlayer(Number(s))) me = Number(s); } catch (e) {}
+    try { const l = localStorage.getItem("count-level"); if (l === "little" || l === "big") level = l; } catch (e) {}
+    const link = connectPad(code, { onState });
+    const act = (a) => { if (me >= 0) link.act({ ...a, p: me }); };
+
+    PLAYERS.forEach((pl, i) => {
+      const b = document.createElement("button");
+      b.className = "pick"; b.id = "who-" + i; b.style.setProperty("--c", pl.color);
+      b.innerHTML = `${pl.face}<span>${pl.name}</span>`;
+      b.onclick = () => { audio(); meow(); choose(i); };
+      $("whogrid").appendChild(b);
+    });
+    function show(which) { ["who", "levels", "play"].forEach(id => { $(id).hidden = id !== which; }); $("swap").hidden = which === "who"; $("lvlBtn").hidden = which !== "play"; }
+    function choose(i) {
+      me = i;
+      try { localStorage.setItem("count-player", String(i)); } catch (e) {}
+      link.setMe(i);
+      if (level) { act({ a: "level", level }); show("play"); answersKey = ""; render(); } else showLevels();
+    }
+    function showLevels() { show("levels"); ["little", "big"].forEach(l => $("lvl-" + l).classList.toggle("on", l === level)); }
+    ["little", "big"].forEach(l => $("lvl-" + l).addEventListener("click", () => {
+      audio(); meow(l === "big" ? 1.2 : 1);
+      level = l; try { localStorage.setItem("count-level", l); } catch (e) {}
+      act({ a: "level", level: l }); show("play"); answersKey = ""; render();
+    }));
+    $("swap").onclick = () => { audio(); show("who"); };
+    $("lvlBtn").onclick = () => { audio(); showLevels(); };
+
+    function render() {
+      if (me < 0 || $("play").hidden) return;
+      const m = last && last.players && last.players[me] ? last.players[me] : null;
+      const phase = m ? m.phase : "wait";
+      const lv = m && m.level === level ? level : level;
+      $("padTitle").textContent = !last ? "Looking for the TV…" : phase === "count" ? "Let's count! 🐈" : phase === "hidden" ? "They're hiding! How many?" : phase === "look" ? "How many cats?" : "Get ready…";
+      const opts = m && typeof m.opts === "string" && m.opts ? m.opts.split(",").map(Number) : [];
+      const key = lv + "|" + opts.join(",");
+      const box = $("answers");
+      if (key !== answersKey) {
+        answersKey = key;
+        box.className = "answers " + lv;
+        box.innerHTML = "";
+        const nums = lv === "big" ? [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] : (opts.length ? opts : []);
+        nums.forEach(n => {
+          const b = document.createElement("button");
+          b.className = "ans"; b.id = "ans-" + n; b.style.setProperty("--c", PLAYERS[me].color);
+          b.innerHTML = lv === "big" ? String(n) : `${n}${dotsHTML(n)}`;
+          b.setAttribute("aria-label", `${n}`);
+          b.addEventListener("pointerdown", (e) => {
+            e.preventDefault(); audio();
+            if (box.classList.contains("busy")) return;
+            blip(n); try { navigator.vibrate && navigator.vibrate(20); } catch (err) {}
+            box.classList.add("busy");
+            act({ a: "answer", n });
+          });
+          box.appendChild(b);
+        });
+      }
+      box.classList.toggle("busy", phase !== "look" && phase !== "hidden");
+      const stars = m ? Number(m.stars) || 0 : 0;
+      $("starN").textContent = stars;
+      if (lastStars >= 0 && stars > lastStars) { const s = $("stars"); s.classList.remove("pop"); void s.offsetWidth; s.classList.add("pop"); yay(); }
+      lastStars = stars;
+    }
+    function onState(st) {
+      if (!st || typeof st !== "object") return; last = st;
+      // make sure the TV has this child's level (a message sent before connecting can get lost)
+      const m = st.players && st.players[me];
+      if (me >= 0 && level && m && m.level !== level && performance.now() - lastSync > 1500) { lastSync = performance.now(); act({ a: "level", level }); }
+      render();
+    }
+
+    if (me >= 0) choose(me); else show("who");
+  }
+
+  // ---------- connection START ----------
+  function connectScreen({ onAct, onPlayers }) {
+    let net = null, last = null;
+    const who = new Map();
+    const update = () => { Net.setCount(who.size); onPlayers(new Set([...who.values()].filter(okPlayer))); };
+    $("hint").textContent = "Getting ready for phones…";
+    net = Net.host("count", {
+      onReady: (code) => { Net.joinCard(code); $("hint").hidden = true; },
+      onJoin: (c) => { who.set(c, -1); update(); if (last) net.send(c, last); },
+      onLeave: (c) => { who.delete(c); update(); },
+      onMessage: (m, c) => {
+        const p = Number(m.p); if (!okPlayer(p)) return;
+        if (who.get(c) !== p) { who.set(c, p); update(); }
+        if (m.t === "act") onAct(p, m);
+      },
+      onProblem: () => { $("hint").hidden = false; $("hint").textContent = "Phones can't connect right now. Check the internet connection and reload."; },
+    });
+    return { share(state) { last = { t: "state", ...state }; if (net) net.broadcast(last); } };
+  }
+  function connectPad(code, { onState }) {
+    let me = -1, link = null;
+    link = Net.join("count", code, {
+      onStatus: (s) => {
+        const ok = s === "open";
+        $("dot").classList.toggle("ok", ok);
+        $("statusText").textContent = ok ? "Connected" : s === "notfound" ? `Looking for game ${code}…` : "Connecting to the TV…";
+        if (ok && me >= 0) link.send({ t: "hello", p: me });
+      },
+      onMessage: (m) => { if (m.t === "state") onState(m); },
+    });
+    Net.padMenuButton(link);
+    return {
+      act(a) { link.send({ t: "act", ...a }); },
+      setMe(p) { me = p; link.send({ t: "hello", p }); },
+    };
+  }
+  // ---------- connection END ----------
+})();
+</script>
+
+</body>
+</html>
