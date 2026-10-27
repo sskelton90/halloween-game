@@ -5,7 +5,7 @@ window.Net = (() => {
   const LETTERS = "ABCDEFGHJKMNPQRSTUVWXYZ";
   const newCode = () => Array.from({ length: 4 }, () => LETTERS[Math.floor(Math.random() * LETTERS.length)]).join("");
   const peerId = (game, code) => `familyparty-${game}-${code}`.toLowerCase();
-  const GAMES = ["bubble", "pumpkin", "race"];
+  const GAMES = ["bubble", "pumpkin", "race", "knock"];
   const KEY = "familyparty-tv-code";
 
   function savedCode() { try { const c = sessionStorage.getItem(KEY); return c && /^[A-Z]{4}$/.test(c) ? c : null; } catch (e) { return null; } }

@@ -16,10 +16,17 @@
     d.querySelector("button").onclick = function () { location.reload(); };
     (document.body || document.documentElement).appendChild(d);
   }
+  // Only step in when the screen would otherwise be blank: a missing file, or a crash that left nothing showing.
+  function blank() {
+    var els = document.querySelectorAll("#home, #screen, #pad, .games");
+    for (var i = 0; i < els.length; i++) if (!els[i].hidden) return false;
+    return true;
+  }
   window.addEventListener("error", function (e) {
     var t = e.target;
-    if (t && t.tagName === "SCRIPT") show("Couldn't load " + (t.getAttribute("src") || "a script"));
-    else if (e.message) show(e.message);
+    if (t && t.tagName === "SCRIPT") { show("Couldn't load " + (t.getAttribute("src") || "a script")); return; }
+    var msg = e.message;
+    setTimeout(function () { if (blank()) show(msg); }, 0);
   }, true);
 })();
 </script>
@@ -310,7 +317,7 @@ button:focus-visible { outline: 4px solid var(--moon); outline-offset: 3px; }
 
 <script src="peerjs.min.js?v=7e60515a"></script>
 <script src="qrcode.js?v=4c79be16"></script>
-<script src="net.js?v=273e3dda"></script>
+<script src="net.js?v=09854ae5"></script>
 <script>
 (() => {
   const $ = (id) => document.getElementById(id);

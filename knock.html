@@ -1,0 +1,693 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<script>
+/* If something fails to load (an old cached file, a dropped connection), say so instead of showing a blank screen. */
+(function () {
+  var shown = false;
+  function show(msg) {
+    if (shown) return; shown = true;
+    var d = document.createElement("div");
+    d.setAttribute("style", "position:fixed;inset:0;z-index:99;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:24px;text-align:center;background:#1b0f33;color:#fff6e6;font:500 18px system-ui,sans-serif");
+    d.innerHTML = '<div style="font-size:56px">🎃</div><div style="font:800 26px system-ui,sans-serif">Oops, part of the game didn\'t load</div><div style="max-width:30em;opacity:.85">Reload to try again. If it keeps happening, check the internet connection.</div><button style="font:800 22px system-ui,sans-serif;padding:10px 32px;border-radius:999px;border:0;background:#ff8a1f;color:#1b0f33">Reload</button><div style="font-size:13px;opacity:.55;max-width:40em;word-break:break-word"></div>';
+    d.lastChild.textContent = String(msg || "");
+    d.querySelector("button").onclick = function () { location.reload(); };
+    (document.body || document.documentElement).appendChild(d);
+  }
+  // Only step in when the screen would otherwise be blank: a missing file, or a crash that left nothing showing.
+  function blank() {
+    var els = document.querySelectorAll("#home, #screen, #pad, .games");
+    for (var i = 0; i < els.length; i++) if (!els[i].hidden) return false;
+    return true;
+  }
+  window.addEventListener("error", function (e) {
+    var t = e.target;
+    if (t && t.tagName === "SCRIPT") { show("Couldn't load " + (t.getAttribute("src") || "a script")); return; }
+    var msg = e.message;
+    setTimeout(function () { if (blank()) show(msg); }, 0);
+  }, true);
+})();
+</script>
+<style>[hidden]{display:none!important}body{margin:0}</style>
+<title>Knock Knock Street</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&family=Griffy&display=swap">
+<style>
+/* Layout: a night-time street of houses across the TV, each child's doors wearing their colour; buckets along the bottom. Phones show only your own doors. */
+:root {
+  --night: #1b0f33;
+  --dusk: #3a1d63;
+  --glow: #6b3fa0;
+  --moon: #fff3b8;
+  --candy: #ff8a1f;
+  --slime: #9cf26b;
+  --ink: #1b0f33;
+  --text: #fff6e6;
+  --lamp: #ffd96b;
+  --glass: rgba(255, 246, 230, 0.12);
+  --glass-line: rgba(255, 246, 230, 0.32);
+  --display: "Griffy", "Baloo 2", "Comic Sans MS", cursive;
+  --body: "Baloo 2", "Arial Rounded MT Bold", "Trebuchet MS", system-ui, sans-serif;
+  color-scheme: dark;
+}
+html, body { height: 100%; }
+body {
+  background: var(--night); color: var(--text); font-family: var(--body);
+  overflow: hidden; -webkit-user-select: none; user-select: none;
+  -webkit-tap-highlight-color: transparent; touch-action: manipulation;
+}
+.sky { position: fixed; inset: 0; z-index: 0;
+  background:
+    radial-gradient(70% 22% at 50% 100%, #2c5a1e 0 60%, transparent 61%),
+    linear-gradient(180deg, var(--night) 0%, var(--dusk) 60%, var(--glow) 100%); }
+.moon {
+  position: fixed; z-index: 0; top: calc(6vh + env(safe-area-inset-top, 0px)); right: max(6vw, env(safe-area-inset-right, 0px));
+  width: min(18vmin, 180px); aspect-ratio: 1; max-width: 100%; border-radius: 50%;
+  background: radial-gradient(circle at 38% 35%, #fffbe0, var(--moon) 55%, #f3d97a);
+  box-shadow: 0 0 60px 20px rgba(255, 243, 184, 0.22);
+}
+.moon::before, .moon::after { content: ""; position: absolute; top: 38%; width: 10%; height: 14%; border-radius: 50%; background: #6b5a2a; }
+.moon::before { left: 32%; } .moon::after { right: 32%; }
+.moon i { position: absolute; left: 30%; right: 30%; top: 56%; height: 16%; border-bottom: .5vmin solid #6b5a2a; border-radius: 0 0 50% 50%; }
+body.on-pad .moon, body.on-screen .moon { display: none; }
+.view {
+  position: fixed; inset: 0; z-index: 1;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: calc(14px + env(safe-area-inset-top, 0px)) calc(14px + env(safe-area-inset-bottom, 0px));
+}
+button { font-family: var(--body); color: inherit; cursor: pointer; }
+button:focus-visible { outline: 4px solid var(--moon); outline-offset: 3px; }
+
+/* ---------- Home ---------- */
+.home { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1.4rem; text-align: center; }
+.home h1 { margin: 0; font-family: var(--display); font-weight: 400; font-size: clamp(2.8rem, 11vw, 7rem); line-height: .95; color: var(--candy); text-wrap: balance; text-shadow: 0 6px 0 rgba(0,0,0,.35); }
+.home h1 span { display: block; color: var(--slime); font-size: .5em; }
+.home p { margin: 0; max-width: 34ch; font-size: 1.15rem; opacity: .9; }
+.cast { font-size: clamp(2.2rem, 8vw, 3.6rem); display: flex; gap: .6rem; }
+.choices { display: flex; flex-wrap: wrap; gap: 1rem; justify-content: center; width: 100%; max-width: 640px; }
+.choice {
+  flex: 1 1 240px; min-height: 130px; border-radius: 28px; border: 2px solid var(--glass-line);
+  background: var(--glass); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .2rem;
+  font-size: 1.6rem; font-weight: 800; transition: transform .12s;
+}
+.choice small { font-size: 1rem; font-weight: 500; opacity: .8; }
+.choice .big { font-size: 2.8rem; line-height: 1; }
+.choice:active { transform: scale(.96); }
+
+/* ---------- Big screen ---------- */
+.screen { display: flex; flex-direction: column; pointer-events: none; gap: 1.5vh; }
+.topbar { width: 100%; box-sizing: border-box; display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; flex-wrap: wrap; padding-right: min(22vmin, 200px); }
+.brand { font-family: var(--display); font-size: clamp(1.6rem, 3.4vw, 2.8rem); color: var(--candy); }
+.hint { font-size: clamp(.9rem, 1.6vw, 1.2rem); background: var(--glass); border: 1px solid var(--glass-line); border-radius: 999px; padding: .4rem 1rem; max-width: 100%; }
+.road { flex: 1; min-height: 0; position: relative; display: flex; flex-direction: column; justify-content: flex-end; }
+.sign { position: absolute; left: 1vw; top: 1vh; z-index: 2; background: #2f6b3a; border: .4vh solid #fff6e6; border-radius: 1vh; padding: .4vh 1.6vw;
+  font-weight: 800; font-size: clamp(1rem, 2.6vw, 2.2rem); box-shadow: 0 .6vh 0 rgba(0,0,0,.35); }
+.street { display: flex; align-items: flex-end; justify-content: center; gap: 1.2vw; padding-inline: 2vw; transition: transform .7s ease-in-out, opacity .7s; }
+.street.out { transform: translateX(-110%); opacity: 0; }
+.street.in { transition: none; transform: translateX(110%); opacity: 0; }
+.house { position: relative; flex: 1 1 0; min-width: 0; max-width: 17vw; display: flex; flex-direction: column; align-items: center; }
+.roof { width: 112%; aspect-ratio: 2.3; clip-path: polygon(50% 0, 100% 100%, 0 100%); background: var(--roof); margin-bottom: -1px; }
+.walls { position: relative; width: 100%; height: min(34vh, 26vw); background: var(--wall); border-radius: 0 0 .8vh .8vh; }
+.window { position: absolute; top: 9%; width: 26%; aspect-ratio: 1; background: var(--lamp); border-radius: .6vh; box-shadow: 0 0 2vh rgba(255, 207, 74, .55); }
+.window.l { left: 10%; } .window.r { right: 10%; }
+.window::after { content: ""; position: absolute; inset: 46% 0 auto; height: 8%; background: var(--wall); }
+.plate { position: absolute; top: 9%; left: 50%; transform: translateX(-50%); font-size: min(4.2vh, 3vw); line-height: 1; }
+.doorway { position: absolute; left: 24%; right: 24%; bottom: 0; height: 56%; background: #120a22; border-radius: 45% 45% 0 0 / 22% 22% 0 0;
+  box-shadow: 0 0 0 .5vh var(--c); perspective: 80vh; }
+.door { position: absolute; inset: 0; border-radius: inherit; background: linear-gradient(90deg, color-mix(in srgb, var(--c) 82%, #000), var(--c));
+  background-color: var(--c); transform-origin: 0 50%; transition: transform .6s cubic-bezier(.3, 1.2, .5, 1); z-index: 2; }
+.door::after { content: ""; position: absolute; right: 14%; top: 55%; width: 12%; aspect-ratio: 1; border-radius: 50%; background: #ffd23f; box-shadow: 0 .2vh 0 rgba(0,0,0,.4); }
+.doorway.open .door { transform: rotateY(-108deg); }
+.doorway.knock .door { animation: knock .12s linear 3; }
+@keyframes knock { 50% { transform: translateX(.6vh) rotate(1deg); } }
+.inside { position: absolute; left: 50%; bottom: 4%; font-size: min(9vh, 6.5vw); line-height: 1; transform: translateX(-50%) scale(0); transition: transform .45s .25s cubic-bezier(.3, 1.6, .5, 1); z-index: 1; }
+.doorway.open .inside { transform: translateX(-50%) scale(1); }
+.house.done .walls::after { content: "✓"; position: absolute; right: 4%; bottom: 3%; font-weight: 800; font-size: 3vh; color: var(--slime); }
+.say { position: fixed; z-index: 5; left: 0; top: 0; pointer-events: none; transform: translate(-50%, -100%);
+  background: var(--text); color: var(--ink); font-weight: 800; font-size: clamp(.9rem, 1.7vw, 1.6rem); line-height: 1.1; padding: .4rem .7rem; border-radius: 1.6vh;
+  border: .35vh solid var(--ink); text-align: center; text-wrap: balance; box-sizing: border-box; box-shadow: 0 .6vh 0 rgba(0,0,0,.35); animation: sayin .3s cubic-bezier(.3, 1.6, .5, 1); }
+@keyframes sayin { from { transform: translate(-50%, -80%) scale(.4); opacity: 0; } }
+.buckets { display: flex; justify-content: center; gap: 3vw; padding-top: 1.5vh; flex-wrap: wrap; }
+.bucket { display: flex; align-items: center; gap: 1vw; }
+.bucket .who { font-size: 6vh; line-height: 1; }
+.pail { position: relative; width: 10vh; height: 8.5vh; border-radius: 14% 14% 42% 42%; border: .5vh solid var(--c); background: rgba(0,0,0,.4);
+  display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 4vh; font-variant-numeric: tabular-nums; }
+.pail .peek { position: absolute; top: -3.4vh; left: 50%; transform: translateX(-50%); font-size: 3vh; white-space: nowrap; letter-spacing: -.6vh; }
+.pail.bump { animation: bump .3s; }
+@keyframes bump { 50% { transform: scale(1.15); } }
+.flyer { position: fixed; left: 0; top: 0; z-index: 6; pointer-events: none; font-size: 5vh; line-height: 1; will-change: transform; }
+.cheer { position: fixed; z-index: 6; pointer-events: none; font-weight: 800; font-size: clamp(1.2rem, 2.6vw, 2.2rem); color: var(--slime); text-shadow: 0 .3vh 0 rgba(0,0,0,.6);
+  transform: translate(-50%, 0); animation: cheer 1.6s ease-out forwards; white-space: nowrap; }
+@keyframes cheer { from { opacity: 0; transform: translate(-50%, 2vh) scale(.6); } 20% { opacity: 1; transform: translate(-50%, 0) scale(1.1); } to { opacity: 0; transform: translate(-50%, -12vh) scale(1); } }
+.card { position: fixed; z-index: 5; left: 50%; top: 46%; transform: translate(-50%, -50%); width: min(80vw, 900px); text-align: center; pointer-events: none;
+  background: rgba(27, 15, 51, .88); border: .4vh solid var(--glass-line); border-radius: 4vh; padding: 3vh 3vw; display: flex; flex-direction: column; align-items: center; gap: 1.6vh; }
+.card h2 { margin: 0; font-family: var(--display); font-weight: 400; font-size: clamp(2rem, 6vw, 5rem); color: var(--candy); line-height: 1; }
+.card p { margin: 0; font-size: clamp(1.1rem, 2.4vw, 2rem); font-weight: 800; }
+.count-n { font-family: var(--display); font-size: clamp(4rem, 16vh, 10rem); line-height: 1; color: var(--slime); font-variant-numeric: tabular-nums; }
+.pile { display: flex; flex-wrap: wrap; justify-content: center; gap: .3vh .3vw; font-size: 4.2vh; line-height: 1; max-width: 70vw; min-height: 5vh; }
+.totals { display: flex; gap: 2.5vw; flex-wrap: wrap; justify-content: center; font-size: clamp(1rem, 2.2vw, 1.8rem); font-weight: 800; }
+.start { position: fixed; inset: 0; z-index: 7; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1.2rem;
+  background: rgba(27, 15, 51, .6); text-align: center; pointer-events: auto; padding-inline: 16px; }
+.start button { font-size: clamp(2rem, 5vw, 3.5rem); font-weight: 800; padding: .5rem 2.4rem; border-radius: 999px; border: 0; background: var(--candy); color: var(--ink); box-shadow: 0 8px 0 rgba(0,0,0,.4); }
+.start p { margin: 0; font-size: clamp(1rem, 2vw, 1.4rem); max-width: 46ch; }
+
+/* ---------- Controller ---------- */
+.pad { display: flex; flex-direction: column; align-items: center; gap: .9rem; height: 100dvh; box-sizing: border-box; }
+.pad-top { width: 100%; display: flex; justify-content: space-between; align-items: center; gap: .6rem; }
+.status { font-size: .95rem; display: flex; align-items: center; gap: .45rem; min-width: 0; flex: 1; }
+.dot { width: 12px; height: 12px; border-radius: 50%; background: var(--candy); flex: none; }
+.dot.ok { background: var(--slime); }
+.small-btn { background: var(--glass); border: 1px solid var(--glass-line); border-radius: 999px; padding: .4rem 1rem; font-size: .95rem; font-weight: 700; flex: none; }
+.who { flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 1rem; width: 100%; }
+.who h2 { margin: 0; text-align: center; font-family: var(--display); font-weight: 400; font-size: 2.2rem; color: var(--candy); }
+.whogrid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; width: min(520px, 100%, calc(100dvh - 12rem)); margin-inline: auto; }
+.pick { aspect-ratio: 1; max-width: 100%; border-radius: 32px; border: 0; background: var(--c);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 4.2rem; line-height: 1; box-shadow: inset 0 -10px 0 rgba(0,0,0,.2); }
+.pick span { font-size: 1.3rem; font-weight: 800; color: var(--ink); margin-top: .3rem; }
+.play { flex: 1; min-height: 0; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1rem; text-align: center; }
+.pad-title { margin: 0; font-family: var(--display); font-weight: 400; font-size: clamp(1.9rem, 8.5vw, 3rem); line-height: 1.05; color: var(--candy); text-wrap: balance; }
+.doors { display: grid; gap: 1rem; width: min(100%, 560px); grid-template-columns: repeat(var(--n, 3), minmax(0, 1fr)); }
+.pdoor { position: relative; aspect-ratio: .68; max-width: 100%; border: 0; padding: 0; border-radius: 45% 45% 10px 10px / 22% 22% 10px 10px;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--c) 80%, #000), var(--c)); background-color: var(--c); box-shadow: inset 0 -8px 0 rgba(0,0,0,.2), 0 8px 0 rgba(0,0,0,.35); }
+.pdoor::after { content: ""; position: absolute; right: 14%; top: 55%; width: 13%; aspect-ratio: 1; border-radius: 50%; background: #ffd23f; }
+.pdoor:active { transform: translateY(4px) scale(.97); }
+.pdoor.open { background: #120a22; box-shadow: inset 0 0 0 5px var(--c); font-size: clamp(2.4rem, 13vw, 4.4rem); }
+.pdoor.open::after { display: none; }
+.pdoor.knocked { animation: knock .12s linear 3; }
+.bigact { border: 0; border-radius: 999px; padding: 1.1rem 2.6rem; font-size: clamp(1.6rem, 7vw, 2.4rem); font-weight: 800; background: var(--candy); color: var(--ink);
+  box-shadow: 0 8px 0 rgba(0,0,0,.4); animation: nudge 1.1s ease-in-out infinite; }
+.bigact:active { transform: translateY(5px); box-shadow: 0 3px 0 rgba(0,0,0,.4); }
+@keyframes nudge { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.06); } }
+.mybucket { width: min(100%, 560px); display: flex; align-items: center; gap: .8rem; padding: .6rem 1rem; border-radius: 20px; background: var(--glass); border: 2px solid var(--glass-line); }
+.mybucket .n { font-size: 2rem; font-weight: 800; font-variant-numeric: tabular-nums; flex: none; }
+.mybucket .sweets { flex: 1; min-width: 0; font-size: 1.5rem; line-height: 1.2; overflow-wrap: anywhere; text-align: left; }
+@media (orientation: landscape) {
+  .whogrid { grid-template-columns: repeat(4, minmax(0, 1fr)); width: min(900px, 100%, calc((100dvh - 10rem) * 4 + 3rem)); }
+  .doors { width: min(100%, 720px, calc((100dvh - 15rem) * .68 * var(--n, 3) + 3rem)); }
+}
+@media (orientation: landscape) and (max-height: 500px) {
+  .pick { font-size: 2.6rem; border-radius: 22px; }
+  .pick span { font-size: 1rem; }
+  .who h2, .pad-title { font-size: 1.5rem; }
+  .mybucket { padding: .3rem .8rem; }
+  .mybucket .n { font-size: 1.4rem; }
+  .mybucket .sweets { font-size: 1.1rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .bigact, .doorway.knock .door, .pdoor.knocked, .pail.bump { animation: none !important; }
+  .door, .inside, .street { transition-duration: .01s !important; }
+  .say, .cheer { animation-duration: .01s; }
+}
+</style>
+</head>
+<body>
+
+<div class="sky"></div>
+<div class="moon" aria-hidden="true"><i></i></div>
+
+<section class="view home" id="home">
+  <div class="cast" aria-hidden="true"><span>🚪</span><span>🍬</span><span>🎃</span><span>🍭</span></div>
+  <h1>Knock Knock<span>Street</span></h1>
+  <p>Open this page on the TV and tap Big screen. Then scan the QR code on the TV with each phone.</p>
+  <div class="choices">
+    <button class="choice" id="goScreen"><span class="big">📺</span>Big screen<small>The TV or laptop</small></button>
+    <button class="choice" id="goPad"><span class="big">📱</span>Controller<small>One per trick-or-treater</small></button>
+  </div>
+</section>
+
+<section class="view screen" id="screen" hidden>
+  <div class="topbar">
+    <div class="brand">Knock Knock Street</div>
+    <div class="hint" id="hint">Open this link on a phone and tap Controller</div>
+  </div>
+  <div class="road">
+    <div class="sign" id="sign" hidden></div>
+    <div class="street" id="street"></div>
+  </div>
+  <div class="buckets" id="buckets"></div>
+</section>
+<div class="card" id="card" hidden></div>
+<div class="start" id="start" hidden>
+  <button id="startBtn">Start!</button>
+  <p>Starting turns the sound on. Without phones: press 1–4 to knock for a player, and Space to set off.</p>
+</div>
+
+<section class="view pad" id="pad" hidden>
+  <div class="pad-top">
+    <div class="status"><span class="dot" id="dot"></span><span id="statusText">Looking for the TV…</span></div>
+    <button class="small-btn" id="swap" hidden>Change</button>
+  </div>
+  <div class="who" id="who">
+    <h2>Who are you?</h2>
+    <div class="whogrid" id="whogrid"></div>
+  </div>
+  <div class="play" id="play" hidden>
+    <h2 class="pad-title" id="padTitle">Ready?</h2>
+    <div class="doors" id="pdoors" hidden></div>
+    <button class="bigact" id="actBtn" hidden></button>
+    <div class="mybucket" id="mybucket"><span class="n" id="myCount">0</span><span class="sweets" id="mySweets">Your bucket is empty</span></div>
+  </div>
+</section>
+
+<script src="peerjs.min.js?v=7e60515a"></script>
+<script src="qrcode.js?v=4c79be16"></script>
+<script src="net.js?v=09854ae5"></script>
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+
+  const PLAYERS = [
+    { name: "Pumpkin", face: "🎃", color: "#ff8a1f" },
+    { name: "Ghost",   face: "👻", color: "#c9ecff" },
+    { name: "Bat",     face: "🦇", color: "#b97bff" },
+    { name: "Owl",     face: "🦉", color: "#9cf26b" },
+  ];
+  const okPlayer = (p) => Number.isInteger(p) && p >= 0 && p < PLAYERS.length;
+  const TREATS = ["🍬", "🍭", "🍫", "🧁", "🍪", "🍩"];
+  const GIVERS = [
+    { f: "🐱", line: "Trick or treat!" }, { f: "🐸", line: "Ribbit! Have a sweet!" }, { f: "🐻", line: "Happy Halloween!" },
+    { f: "🦊", line: "Ooh, I love your costume!" }, { f: "🐷", line: "Here you go!" }, { f: "🐭", line: "Squeak! A treat for you!" },
+    { f: "🐶", line: "Woof! Trick or treat!" }, { f: "🦄", line: "A magic sweet for you!" }, { f: "🐼", line: "Hello! Have a treat!" },
+  ];
+  // silly surprises: everyone still gets their sweet
+  const TRICKS = [
+    { f: "🎃", line: "Where are my pants?!", fly: "🩲", mood: "wail" },
+    { f: "🦉", line: "Have you seen my hat?", fly: "🎩", mood: "grump" },
+    { f: "🐔", line: "Bawk! I'm a spooky chicken!", fly: "🪶", mood: "happy" },
+    { f: "🙈", line: "Peekaboo!", fly: "✨", mood: "happy" },
+    { f: "🐙", line: "Eight arms, eight sweets! No, just one.", fly: "💦", mood: "happy" },
+  ];
+  const STREETS = ["Pumpkin Lane", "Cobweb Close", "Broomstick Road", "Sweetie Street"];
+  const WALLS = [["#3b2a5c", "#22163a"], ["#2f4a5c", "#1a2b38"], ["#4a2f4f", "#2b1730"], ["#2f3f63", "#1b2440"], ["#45305c", "#271a36"], ["#334f4a", "#1c2e2b"]];
+  const shuffle = (a) => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+  const pick = (a) => a[Math.floor(Math.random() * a.length)];
+
+  // ---------- Audio and voice ----------
+  let ac = null;
+  function audio() {
+    if (!ac) { try { ac = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { ac = null; } }
+    if (ac && ac.state === "suspended") ac.resume().catch(() => {});
+    return ac;
+  }
+  function tone(type, f0, f1, dur, vol, delay = 0) {
+    const a = ac; if (!a) return;
+    const t = a.currentTime + delay;
+    const o = a.createOscillator(), g = a.createGain();
+    o.type = type; o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(f1, t + dur);
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + 0.01); g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+    o.connect(g).connect(a.destination); o.start(t); o.stop(t + dur + .05);
+  }
+  const knockSound = () => { for (let k = 0; k < 3; k++) tone("triangle", 180, 90, .07, .35, k * .14); };
+  const creak = () => tone("sawtooth", 140, 320, .45, .05, .4);
+  const plink = () => { tone("sine", 880, 1320, .12, .2); tone("sine", 1320, 1760, .12, .15, .08); };
+  const fanfare = () => [523, 659, 784, 1047].forEach((f, i) => tone("triangle", f, f, i === 3 ? .6 : .16, .22, i * .1));
+  const cheerSound = () => { tone("triangle", 660, 990, .15, .15); tone("triangle", 880, 1320, .2, .15, .12); };
+  function speak(text, mood = "happy", { interrupt = true, onend } = {}) {
+    try {
+      const s = window.speechSynthesis; if (!s) { onend && onend(); return; }
+      if (!interrupt && s.speaking) { onend && onend(); return; }
+      if (interrupt) s.cancel();
+      const u = new SpeechSynthesisUtterance(text);
+      const m = { wail: [1.9, 1.05], grump: [0.5, 0.9], happy: [1.4, 1.1], count: [1.3, 1.25] }[mood] || [1, 1];
+      u.pitch = m[0]; u.rate = m[1]; u.lang = "en-GB";
+      if (onend) { let done = false; const fin = () => { if (!done) { done = true; onend(); } }; u.onend = fin; u.onerror = fin; setTimeout(fin, 1100); }
+      s.speak(u);
+    } catch (e) { onend && onend(); }
+  }
+
+  // ---------- Home ----------
+  $("goScreen").onclick = () => { $("home").hidden = true; startScreen(); };
+  $("goPad").onclick = () => { $("home").hidden = true; startPad(Net.codeFromUrl()); };
+  if (Net.codeFromUrl()) { $("home").hidden = true; startPad(Net.codeFromUrl()); }
+  else if (Net.tvFromUrl()) { $("home").hidden = true; startScreen(); }
+
+  // =====================================================================
+  // BIG SCREEN
+  // =====================================================================
+  function startScreen() {
+    document.body.classList.add("on-screen");
+    Net.tvMenuButton();
+    $("screen").hidden = false; $("start").hidden = false;
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const P = PLAYERS.map((pl, i) => ({ i, pl, here: false, local: false, bucket: [], doors: [], el: null, pail: null, lastCheer: 0 }));
+    let phase = "lobby", streetNo = 0, started = false, playersKey = "", walking = false;
+
+    const present = () => { const h = P.filter(x => x.here || x.local); return h.length ? h : [P[0]]; };
+
+    // ----- buckets along the bottom -----
+    function renderBuckets() {
+      const box = $("buckets"); box.innerHTML = "";
+      for (const x of present()) {
+        const d = document.createElement("div");
+        d.className = "bucket"; d.style.setProperty("--c", x.pl.color);
+        d.innerHTML = `<span class="who">${x.pl.face}</span><div class="pail"><span class="peek"></span><span class="n">0</span></div>`;
+        x.el = d; x.pail = d.querySelector(".pail");
+        box.appendChild(d); drawBucket(x);
+      }
+    }
+    function drawBucket(x) {
+      if (!x.pail) return;
+      x.pail.querySelector(".n").textContent = x.bucket.length;
+      x.pail.querySelector(".peek").textContent = x.bucket.slice(-3).join("");
+    }
+
+    // ----- the street -----
+    function buildStreet() {
+      const list = present();
+      const per = list.length <= 2 ? 3 : 2;               // same number of doors for everyone
+      const treats = shuffle(TREATS).slice(0, per);        // same sweets for everyone, different order
+      for (const x of P) x.doors = [];
+      for (const x of list) {
+        const order = shuffle(treats), trickAt = Math.floor(Math.random() * per);
+        x.doors = order.map((t, k) => ({ treat: t, trick: k === trickAt ? pick(TRICKS) : null, giver: pick(GIVERS), opened: false, el: null }));
+      }
+      const street = $("street"); street.innerHTML = "";
+      let w = Math.floor(Math.random() * WALLS.length);
+      for (const x of list) x.doors.forEach((door, k) => {
+        const [wall, roof] = WALLS[w++ % WALLS.length];
+        const h = document.createElement("div");
+        h.className = "house"; h.style.setProperty("--wall", wall); h.style.setProperty("--roof", roof); h.style.setProperty("--c", x.pl.color);
+        h.innerHTML = `<div class="roof"></div><div class="walls"><div class="window l"></div><div class="window r"></div><div class="plate">${x.pl.face}</div>
+          <div class="doorway"><div class="door"></div><div class="inside">${door.trick ? door.trick.f : door.giver.f}</div></div></div>`;
+        door.el = h;
+        h.addEventListener("pointerdown", () => { if (started) knock(x.i, k); });
+        street.appendChild(h);
+      });
+      $("sign").hidden = false; $("sign").textContent = "🪧 " + STREETS[(streetNo - 1) % STREETS.length];
+    }
+    function walkTo(next) {
+      if (walking) return;
+      walking = true;
+      const street = $("street");
+      street.classList.add("out");
+      setTimeout(() => {
+        next();
+        street.classList.remove("out"); street.classList.add("in");
+        void street.offsetWidth;
+        street.classList.remove("in");
+        walking = false;
+        share();
+      }, reduce ? 10 : 750);
+    }
+    function newStreet() {
+      streetNo++;
+      phase = "street";
+      buildStreet(); hideCard();
+      speak(`Welcome to ${STREETS[(streetNo - 1) % STREETS.length]}!`);
+      share();
+    }
+
+    // ----- knocking -----
+    function knock(p, k) {
+      const x = P[p]; if (phase !== "street" || walking || !x) return;
+      const door = x.doors[k]; if (!door || door.opened || !door.el) return;
+      door.opened = true;
+      const way = door.el.querySelector(".doorway");
+      way.classList.add("knock"); knockSound();
+      setTimeout(() => { way.classList.remove("knock"); way.classList.add("open"); creak(); }, reduce ? 0 : 400);
+      setTimeout(() => {
+        const who = door.trick || door.giver;
+        bubble(door.el, who.line);
+        if (door.trick) { speak(door.trick.line, door.trick.mood); if (door.trick.fly) toss(door.el, door.trick.fly); }
+        else speak(who.line, "happy", { interrupt: false });
+      }, reduce ? 50 : 800);
+      setTimeout(() => giveSweet(x, door), reduce ? 100 : 1500);
+      share();
+    }
+    function bubble(house, text) {
+      if (house._say) house._say.remove();
+      const r = house.getBoundingClientRect();
+      const b = document.createElement("div"); b.className = "say"; b.textContent = text;
+      b.style.maxWidth = Math.max(140, r.width * 1.05) + "px";     // stays over its own house, so neighbours don't overlap
+      document.body.appendChild(b);
+      const w = b.offsetWidth;
+      b.style.left = Math.max(w / 2 + 8, Math.min(innerWidth - w / 2 - 8, r.left + r.width / 2)) + "px"; b.style.top = (r.top - 4) + "px";
+      house._say = b; setTimeout(() => { b.remove(); if (house._say === b) house._say = null; }, 2600);
+    }
+    function centre(el) { const r = el.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; }
+    function flyer(text) { const s = document.createElement("span"); s.className = "flyer"; s.textContent = text; document.body.appendChild(s); return s; }
+    const at = (p, s = 1, r = 0) => `translate(${p.x}px, ${p.y}px) translate(-50%, -50%) rotate(${r}deg) scale(${s})`;
+    function toss(house, emoji) {   // the trick's prop flies off the top of the screen
+      const from = centre(house.querySelector(".doorway")), s = flyer(emoji);
+      s.animate([{ transform: at(from, .5) }, { transform: at({ x: from.x + 120, y: from.y - innerHeight * .35 }, 1.4, 200) }, { transform: at({ x: from.x + 260, y: -80 }, 1, 400) }],
+        { duration: reduce ? 1 : 1400, easing: "ease-out", fill: "forwards" }).finished.catch(() => {}).then(() => s.remove());
+    }
+    function giveSweet(x, door) {
+      if (!door.el || !x.pail) { x.bucket.push(door.treat); drawBucket(x); afterSweet(); return; }
+      const from = centre(door.el.querySelector(".doorway")), to = centre(x.pail), s = flyer(door.treat);
+      const mid = { x: (from.x + to.x) / 2, y: Math.min(from.y, to.y) - innerHeight * .2 };
+      s.animate([{ transform: at(from, .6) }, { transform: at(mid, 1.3, 180) }, { transform: at(to, .8, 360) }],
+        { duration: reduce ? 1 : 900, easing: "ease-in-out", fill: "forwards" }).finished.catch(() => {}).then(() => {
+          s.remove(); x.bucket.push(door.treat); drawBucket(x); plink();
+          x.pail.classList.remove("bump"); void x.pail.offsetWidth; x.pail.classList.add("bump");
+          door.el.classList.add("done");
+          afterSweet();
+        });
+    }
+    function afterSweet() {
+      share();
+      if (phase !== "street") return;
+      const list = present().filter(x => x.doors.length);
+      if (list.length && list.every(x => x.doors.every(d => d.opened)) && !walking) {
+        phase = "between";
+        setTimeout(() => {
+          fanfare(); speak(streetNo < STREETS.length ? "Everybody's done! Next street!" : "What a lot of sweets! Let's count them!");
+          setTimeout(() => streetNo < STREETS.length ? walkTo(newStreet) : countUp(), 1800);
+        }, 900);
+      }
+    }
+    function cheer(p) {
+      const x = P[p]; if (!x || phase !== "street") return;
+      const now = performance.now(); if (now - x.lastCheer < 1200) return; x.lastCheer = now;
+      const waiting = present().filter(y => y !== x && y.doors.some(d => !d.opened));
+      if (!waiting.length || !x.el) return;
+      const target = pick(waiting), from = centre(x.el);
+      const c = document.createElement("div"); c.className = "cheer"; c.textContent = `${x.pl.face} 📣 Go ${target.pl.name}!`;
+      c.style.left = from.x + "px"; c.style.top = (from.y - innerHeight * .1) + "px";
+      document.body.appendChild(c); setTimeout(() => c.remove(), 1700);
+      cheerSound();
+      speak(`Go ${target.pl.name}!`, "happy", { interrupt: false });
+    }
+
+    // ----- counting all the sweets together -----
+    function countUp() {
+      phase = "counting"; share();
+      const list = present();
+      const all = [];   // take turns from each bucket so the pile grows fairly
+      for (let k = 0, more = true; more; k++) { more = false; for (const x of list) if (x.bucket[k]) { all.push({ x, t: x.bucket[k] }); more = true; } }
+      showCard(`<h2>Let's count!</h2><div class="count-n" id="countN">0</div><div class="pile" id="pile"></div>`);
+      const left = list.map(x => x.bucket.length);
+      let n = 0;
+      const step = () => {
+        if (n >= all.length) return setTimeout(() => finale(all.length), 600);   // let the last sweet land first
+        const { x, t } = all[n++];
+        const idx = list.indexOf(x); left[idx]--;
+        if (x.pail) { x.pail.querySelector(".n").textContent = left[idx]; x.pail.querySelector(".peek").textContent = x.bucket.slice(Math.max(0, left[idx] - 3), left[idx]).join(""); }
+        const s = flyer(t), from = x.pail ? centre(x.pail) : { x: innerWidth / 2, y: innerHeight }, pile = $("pile"), to = centre(pile);
+        s.animate([{ transform: at(from, .8) }, { transform: at(to, 1, 180) }], { duration: reduce ? 1 : 420, easing: "ease-in", fill: "forwards" })
+          .finished.catch(() => {}).then(() => {
+            s.remove();
+            if (phase !== "counting") return;
+            const e = document.createElement("span"); e.textContent = t; pile.appendChild(e);
+            const cn = $("countN"); if (cn) cn.textContent = pile.children.length;
+            tone("sine", 500 + n * 18, 600 + n * 18, .1, .12);
+          });
+        speak(String(n), "count", { onend: () => setTimeout(step, 80) });
+      };
+      setTimeout(step, 700);
+    }
+    function finale(total) {
+      phase = "done";
+      const list = present();
+      $("card").innerHTML = `<h2>${total} sweets!</h2><p>Everyone collected the same amount. Well done, trick-or-treaters!</p>
+        <div class="pile">${list.flatMap(x => x.bucket).join("")}</div>
+        <div class="totals">${list.map(x => `<span>${x.pl.face} ${x.bucket.length}</span>`).join("")}</div>
+        <p style="opacity:.8">Tap Play again on a phone</p>`;
+      fanfare(); speak(`${total} sweets! Happy Halloween!`);
+      share();
+    }
+    function showCard(html) { $("card").innerHTML = html; $("card").hidden = false; }
+    function hideCard() { $("card").hidden = true; }
+    function lobby() {
+      showCard(`<h2>Knock Knock Street</h2><p>Who's coming trick or treating?</p><p style="opacity:.8">Tap Let's go! on a phone to set off</p>`);
+    }
+    function begin() {
+      if (!started || (phase !== "lobby" && phase !== "done")) return;
+      streetNo = 0;
+      for (const x of P) x.bucket = [];
+      renderBuckets();
+      if (phase === "done") walkTo(newStreet); else newStreet();
+    }
+
+    const link = connectScreen({
+      onAct: (p, a) => {
+        if (!a || typeof a !== "object") return;
+        if (a.a === "knock") knock(p, Number(a.door));
+        else if (a.a === "cheer") cheer(p);
+        else if (a.a === "start") begin();
+      },
+      onPlayers: (set) => {
+        const key = [...set].sort().join(",");
+        if (key === playersKey) return;
+        playersKey = key;
+        P.forEach(x => { x.here = set.has(x.i); });
+        renderBuckets();
+        afterSweet();              // someone left mid-street? don't wait for them
+        share();
+      },
+    });
+    function share() {
+      const doors = {}, buckets = {};
+      for (const x of P) {
+        doors[x.i] = x.doors.map(d => d.opened ? d.treat : "");
+        buckets[x.i] = x.bucket.join("");
+      }
+      link.share({ phase, street: streetNo, doors, buckets });
+    }
+
+    // local play (no phones)
+    window.addEventListener("keydown", (e) => {
+      if (!started) return;
+      if (["1", "2", "3", "4"].includes(e.key)) {
+        const x = P[Number(e.key) - 1];
+        if (!x.local) { x.local = true; renderBuckets(); share(); }
+        const k = x.doors.findIndex(d => !d.opened);
+        if (k >= 0) knock(x.i, k); else cheer(x.i);
+      } else if (e.key === " " || e.key === "Enter") { e.preventDefault(); begin(); }
+    });
+    $("startBtn").onclick = async () => {
+      audio(); $("start").hidden = true; started = true; tone("triangle", 523, 784, .3, .2);
+      try { if (navigator.wakeLock) await navigator.wakeLock.request("screen"); } catch (e) {}
+      try { if (document.documentElement.requestFullscreen) await document.documentElement.requestFullscreen(); } catch (e) {}
+    };
+    renderBuckets(); lobby(); share();
+  }
+
+  // =====================================================================
+  // CONTROLLER
+  // =====================================================================
+  function startPad(code) {
+    if (!code) { Net.askCode((c) => startPad(c)); return; }
+    $("pad").hidden = false; document.body.classList.add("on-pad");
+    let me = -1, last = null, doorsKey = "";
+    try { const s = localStorage.getItem("knock-player"); if (s !== null && okPlayer(Number(s))) me = Number(s); } catch (e) {}
+    const link = connectPad(code, { onState });
+    const act = (a) => { if (me >= 0) link.act({ ...a, p: me }); };
+
+    PLAYERS.forEach((pl, i) => {
+      const b = document.createElement("button");
+      b.className = "pick"; b.id = "who-" + i; b.style.setProperty("--c", pl.color);
+      b.innerHTML = `${pl.face}<span>${pl.name}</span>`;
+      b.onclick = () => { audio(); plink(); choose(i); };
+      $("whogrid").appendChild(b);
+    });
+    function choose(i) {
+      me = i;
+      try { localStorage.setItem("knock-player", String(i)); } catch (e) {}
+      link.setMe(i);
+      $("pad").style.setProperty("--c", PLAYERS[i].color);
+      $("who").hidden = true; $("play").hidden = false; $("swap").hidden = false;
+      doorsKey = ""; render();
+    }
+    function showWho() { $("who").hidden = false; $("play").hidden = true; $("swap").hidden = true; }
+    $("swap").onclick = () => { audio(); showWho(); };
+
+    function myDoors() { const d = last && last.doors ? last.doors[me] : null; return Array.isArray(d) ? d.map(v => typeof v === "string" ? v : "") : []; }
+    function myBucket() { const b = last && last.buckets ? last.buckets[me] : ""; return typeof b === "string" ? Array.from(b.matchAll(/\p{Extended_Pictographic}/gu), m => m[0]) : []; }
+    function othersBusy() {
+      if (!last || !last.doors) return false;
+      return Object.entries(last.doors).some(([p, d]) => Number(p) !== me && Array.isArray(d) && d.some(v => !v));
+    }
+    function render() {
+      if (me < 0 || !$("who").hidden) return;
+      const doors = myDoors(), sweets = myBucket(), phase = last ? last.phase : null;
+      $("myCount").textContent = sweets.length;
+      $("mySweets").textContent = sweets.length ? sweets.join("") : "Your bucket is empty";
+      let title = "Looking for the TV…", showDoors = false, actText = "", actKind = "";
+      if (phase === "lobby") { title = "Ready to go trick or treating?"; actText = "Let's go! 🎃"; actKind = "start"; }
+      else if (phase === "street" || phase === "between") {
+        if (!doors.length) title = "You can join on the next street!";
+        else if (doors.some(v => !v)) { title = "Knock on a door!"; showDoors = true; }
+        else if (phase === "street" && othersBusy()) { title = "All done! Cheer them on!"; showDoors = true; actText = "📣 Cheer!"; actKind = "cheer"; }
+        else { title = "Next street coming…"; showDoors = true; }
+      }
+      else if (phase === "counting") title = "Counting all the sweets!";
+      else if (phase === "done") { title = `You got ${sweets.length} sweets! 🎉`; actText = "Play again!"; actKind = "start"; }
+      $("padTitle").textContent = title;
+      const btn = $("actBtn"); btn.hidden = !actKind; btn.textContent = actText; btn.dataset.kind = actKind;
+      const box = $("pdoors"); box.hidden = !showDoors;
+      const key = JSON.stringify(doors);
+      if (showDoors && key !== doorsKey) {
+        doorsKey = key;
+        box.style.setProperty("--n", Math.min(doors.length, 3));
+        box.innerHTML = "";
+        doors.forEach((v, k) => {
+          const b = document.createElement("button");
+          b.className = "pdoor" + (v ? " open" : ""); b.id = "door-" + k; b.textContent = v;
+          b.setAttribute("aria-label", v ? "Opened door" : `Door ${k + 1}`);
+          b.style.setProperty("--c", PLAYERS[me].color);
+          if (!v) b.addEventListener("pointerdown", (e) => {
+            e.preventDefault(); audio(); knockSound();
+            try { navigator.vibrate && navigator.vibrate([30, 60, 30, 60, 30]); } catch (err) {}
+            b.classList.add("knocked"); act({ a: "knock", door: k });
+          });
+          box.appendChild(b);
+        });
+      }
+    }
+    function onState(st) { if (!st || typeof st !== "object") return; last = st; render(); }
+    $("actBtn").addEventListener("click", () => {
+      audio();
+      const kind = $("actBtn").dataset.kind;
+      if (kind === "cheer") { cheerSound(); act({ a: "cheer" }); }
+      else if (kind === "start") { plink(); act({ a: "start" }); }
+    });
+
+    if (me >= 0) choose(me); else showWho();
+  }
+
+  // ---------- connection START ----------
+  function connectScreen({ onAct, onPlayers }) {
+    let net = null, last = null;
+    const who = new Map();
+    const update = () => { Net.setCount(who.size); onPlayers(new Set([...who.values()].filter(okPlayer))); };
+    $("hint").textContent = "Getting ready for phones…";
+    net = Net.host("knock", {
+      onReady: (code) => { Net.joinCard(code); $("hint").hidden = true; },
+      onJoin: (c) => { who.set(c, -1); update(); if (last) net.send(c, last); },
+      onLeave: (c) => { who.delete(c); update(); },
+      onMessage: (m, c) => {
+        const p = Number(m.p); if (!okPlayer(p)) return;
+        if (who.get(c) !== p) { who.set(c, p); update(); }
+        if (m.t === "act") onAct(p, m);
+      },
+      onProblem: () => { $("hint").hidden = false; $("hint").textContent = "Phones can't connect right now. Check the internet connection and reload."; },
+    });
+    return { share(state) { last = { t: "state", ...state }; if (net) net.broadcast(last); } };
+  }
+  function connectPad(code, { onState }) {
+    let me = -1, link = null;
+    link = Net.join("knock", code, {
+      onStatus: (s) => {
+        const ok = s === "open";
+        $("dot").classList.toggle("ok", ok);
+        $("statusText").textContent = ok ? "Connected" : s === "notfound" ? `Looking for game ${code}…` : "Connecting to the TV…";
+        if (ok && me >= 0) link.send({ t: "hello", p: me });
+      },
+      onMessage: (m) => { if (m.t === "state") onState(m); },
+    });
+    Net.padMenuButton(link);
+    return {
+      act(a) { link.send({ t: "act", ...a }); },
+      setMe(p) { me = p; link.send({ t: "hello", p }); },
+    };
+  }
+  // ---------- connection END ----------
+})();
+</script>
+
+</body>
+</html>

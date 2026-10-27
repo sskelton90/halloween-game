@@ -16,10 +16,17 @@
     d.querySelector("button").onclick = function () { location.reload(); };
     (document.body || document.documentElement).appendChild(d);
   }
+  // Only step in when the screen would otherwise be blank: a missing file, or a crash that left nothing showing.
+  function blank() {
+    var els = document.querySelectorAll("#home, #screen, #pad, .games");
+    for (var i = 0; i < els.length; i++) if (!els[i].hidden) return false;
+    return true;
+  }
   window.addEventListener("error", function (e) {
     var t = e.target;
-    if (t && t.tagName === "SCRIPT") show("Couldn't load " + (t.getAttribute("src") || "a script"));
-    else if (e.message) show(e.message);
+    if (t && t.tagName === "SCRIPT") { show("Couldn't load " + (t.getAttribute("src") || "a script")); return; }
+    var msg = e.message;
+    setTimeout(function () { if (blank()) show(msg); }, 0);
   }, true);
 })();
 </script>
@@ -44,7 +51,7 @@ body {
 }
 h1 { margin: 0; font-family: "Griffy", "Baloo 2", cursive; font-weight: 400; font-size: clamp(2.6rem, 9vw, 6rem); line-height: 1; color: var(--candy); text-wrap: balance; }
 p { margin: 0; max-width: 38ch; font-size: 1.15rem; opacity: .9; }
-.games { display: flex; flex-wrap: wrap; gap: 1rem; justify-content: center; width: 100%; max-width: 1100px; }
+.games { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1rem; width: 100%; max-width: 1100px; }
 .game {
   flex: 1 1 260px; text-decoration: none; color: inherit; border-radius: 28px; border: 2px solid var(--glass-line); background: var(--glass);
   padding: 1.4rem 1rem; display: flex; flex-direction: column; align-items: center; gap: .3rem; transition: transform .12s;
@@ -82,12 +89,13 @@ body.phone .faces { font-size: 3.6rem; }
     <a class="game" href="bubble.html" data-game="bubble"><span class="faces">🎃👻🦇🦉</span><span class="name">Bubble Pop</span><span class="what">Tap to pop your bubbles and fill the candy bucket</span></a>
     <a class="game" href="pumpkin.html" data-game="pumpkin"><span class="faces">🎃✨</span><span class="name">Pumpkin Decorator</span><span class="what">Give your own pumpkin a silly face, then light it up</span></a>
     <a class="game" href="race.html" data-game="race"><span class="faces">🏁🦇🐌</span><span class="name">Spooky Derby</span><span class="what">Tap to hop your racer to the finish. Everyone wins a prize!</span></a>
+    <a class="game" href="knock.html" data-game="knock"><span class="faces">🚪🍬🍭</span><span class="name">Knock Knock Street</span><span class="what">Knock on doors to fill your trick-or-treat bucket</span></a>
   </div>
   <div class="status" id="status" hidden><span class="dot" id="dot"></span><span id="statusText">Looking for the TV…</span></div>
 
 <script src="peerjs.min.js?v=7e60515a"></script>
 <script src="qrcode.js?v=4c79be16"></script>
-<script src="net.js?v=273e3dda"></script>
+<script src="net.js?v=09854ae5"></script>
 <script>
 (() => {
   const $ = (id) => document.getElementById(id);
