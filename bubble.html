@@ -144,6 +144,22 @@ button:focus-visible { outline: 4px solid var(--moon); outline-offset: 4px; }
 @keyframes ripple { from { transform: scale(.9); opacity: .9; } to { transform: scale(1.35); opacity: 0; } }
 .count { font-size: 2.2rem; font-weight: 800; font-variant-numeric: tabular-nums; }
 .note { font-size: .95rem; opacity: .85; text-align: center; max-width: 36ch; margin: 0; }
+/* ---------- Controller sizing: phones, iPads, either way round ---------- */
+body.on-pad .moon { display: none; }
+.pad-view { height: 100dvh; box-sizing: border-box; }
+.pickgrid { width: min(520px, 100%, calc(100dvh - 12rem)); }
+.bigbtn { width: min(82vw, 60dvh); }
+@media (orientation: landscape) {
+  .pickgrid { grid-template-columns: repeat(4, minmax(0, 1fr)); width: min(900px, 100%, calc((100dvh - 10rem) * 4 + 3rem)); max-width: none; }
+  .bigbtn { width: min(70vw, 62dvh); font-size: min(30vw, 26dvh); }
+}
+@media (orientation: landscape) and (max-height: 500px) {
+  .pick { font-size: 2.6rem; border-radius: 22px; }
+  .pick span { font-size: 1rem; }
+  .pickgrid h2 { font-size: 1.5rem; }
+  .count { font-size: 1.5rem; }
+  .note { display: none; }
+}
 @media (prefers-reduced-motion: reduce) {
   .ripple, .countdown span { animation-duration: .01s; }
   .cast span, .pail.full { animation: none; }
@@ -267,22 +283,28 @@ button:focus-visible { outline: 4px solid var(--moon); outline-offset: 4px; }
   $("goScreen").onclick = () => { $("home").hidden = true; startScreen(); };
   $("goPad").onclick = () => { $("home").hidden = true; startPad(Net.codeFromUrl()); };
   if (Net.codeFromUrl()) { $("home").hidden = true; startPad(Net.codeFromUrl()); }
+  else if (Net.tvFromUrl()) { $("home").hidden = true; startScreen(); }
 
   // =====================================================================
   // BIG SCREEN
   // =====================================================================
   function startScreen() {
     document.body.classList.add("on-screen");
+    Net.tvMenuButton();
     const cv = $("pool"), ctx = cv.getContext("2d");
     cv.hidden = false; $("screen").hidden = false; $("start").hidden = false;
-    let W = 0, H = 0;
+    let W = 0, H = 0, dpr = 1, quality = 2;
+    const starCv = document.createElement("canvas");
+    starCv.style.cssText = "position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events:none";
+    cv.parentNode.insertBefore(starCv, cv);
     function resize() {
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
       W = cv.clientWidth; H = cv.clientHeight;
-      cv.width = W * dpr; cv.height = H * dpr;
+      dpr = Math.max(0.5, Math.min(window.devicePixelRatio || 1, 2, Math.sqrt(1.6e6 / Math.max(1, W * H))) * [0.6, 0.8, 1][quality]);
+      cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      sprites.clear();
+      drawStars();
     }
-    window.addEventListener("resize", resize); resize();
 
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     const score = [0, 0, 0, 0];
@@ -290,7 +312,76 @@ button:focus-visible { outline: 4px solid var(--moon); outline-offset: 4px; }
     const padPlayers = new Set();
     let bubbles = [], bits = [], rings = [], parades = [], banners = [], rain = [];
     let started = false, bucket = 0, partyUntil = 0, nextCandyAt = 0;
-    const stars = Array.from({ length: 70 }, () => ({ x: Math.random(), y: Math.random() * 0.75, r: 0.6 + Math.random() * 1.8, ph: Math.random() * 6.28 }));
+    const stars = Array.from({ length: 70 }, () => ({ x: Math.random(), y: Math.random() * 0.75, r: 0.6 + Math.random() * 1.8, a: 0.3 + Math.random() * 0.45 }));
+    function drawStars() {
+      starCv.width = Math.round(W * dpr); starCv.height = Math.round(H * dpr);
+      const s = starCv.getContext("2d"); s.setTransform(dpr, 0, 0, dpr, 0, 0); s.fillStyle = "#fff6e6";
+      for (const st of stars) { s.globalAlpha = st.a; s.beginPath(); s.arc(st.x * W, st.y * H, st.r, 0, 6.2832); s.fill(); }
+    }
+
+    // ---- quality: 2 = full, 1 = lighter, 0 = lightest. Drops automatically if the TV can't keep up. ----
+    const q = (n) => Math.max(1, Math.round(n * [0.35, 0.6, 1][quality]));
+    let fpsFrames = 0, fpsSince = performance.now();
+    function watchSpeed(now) {
+      fpsFrames++;
+      if (now - fpsSince < 1500) return;
+      const fps = fpsFrames * 1000 / (now - fpsSince);
+      fpsFrames = 0; fpsSince = now;
+      if (fps < 40 && quality > 0 && !document.hidden) { quality--; resize(); }
+    }
+
+    // ---- pictures drawn once and reused every frame ----
+    const sprites = new Map();
+    function sprite(key, w, h, draw) {
+      let c = sprites.get(key);
+      if (!c) {
+        c = document.createElement("canvas");
+        c.width = Math.max(1, Math.ceil(w * dpr)); c.height = Math.max(1, Math.ceil(h * dpr));
+        const g = c.getContext("2d"); g.setTransform(dpr, 0, 0, dpr, 0, 0); draw(g, w, h);
+        sprites.set(key, c);
+      }
+      return c;
+    }
+    function emojiAt(g, e, x, y, size) {
+      g.font = `${Math.round(size)}px ${EMOJI_FONT}`; g.textAlign = "center"; g.textBaseline = "middle"; g.fillText(e, x, y);
+    }
+    // one bubble picture per kind, drawn at the biggest size a bubble can be
+    function bubbleSprite(kind) {
+      const R = Math.ceil(baseR() * 1.5), pad = Math.ceil(R * 0.12), S = 2 * (R + pad);
+      return sprite("bubble:" + kind, S, S, (g) => {
+        const c = R + pad, isCandy = kind === "candy" || kind === "pants";
+        const col = isCandy ? "#ffb35c" : PLAYERS[kind].color;
+        const gr = g.createRadialGradient(c - R * .3, c - R * .35, R * .1, c, c, R);
+        gr.addColorStop(0, "rgba(255,255,255,0.5)");
+        gr.addColorStop(0.4, isCandy ? "rgba(255,210,63,0.45)" : col + "44");
+        gr.addColorStop(1, isCandy ? (kind === "pants" ? "rgba(79,195,247,0.85)" : "rgba(255,138,31,0.85)") : col + "bb");
+        g.beginPath(); g.arc(c, c, R, 0, 6.2832); g.fillStyle = gr; g.fill();
+        if (isCandy) {
+          const rb = g.createLinearGradient(0, 0, S, S);
+          ["#ff5fa2", "#ffd23f", "#9cf26b", "#4fc3f7", "#b97bff"].forEach((h, i) => rb.addColorStop(i / 4, h));
+          g.lineWidth = R * 0.12; g.strokeStyle = rb;
+        } else { g.lineWidth = Math.max(2, R * 0.06); g.strokeStyle = "rgba(255,255,255,0.7)"; }
+        g.stroke();
+        g.beginPath(); g.ellipse(c - R * .38, c - R * .42, R * .22, R * .12, -0.6, 0, 6.2832); g.fillStyle = "rgba(255,255,255,0.85)"; g.fill();
+        emojiAt(g, kind === "pants" ? "🩲" : kind === "candy" ? "🍬" : PLAYERS[kind].face, c, c + R * 0.05, R * 0.95);
+      });
+    }
+    const emojiSprite = (e, size) => sprite(`emoji:${e}:${size}`, size * 1.3, size * 1.3, (g, w, h) => emojiAt(g, e, w / 2, h / 2, size));
+    function textSprite(text, size, color) {
+      return sprite(`text:${text}:${size}:${color}`, Math.ceil(size * (text.length * 0.62 + 1)), Math.ceil(size * 1.5), (g, w, h) => {
+        g.font = `${size}px Griffy, "Baloo 2", cursive`; g.textAlign = "center"; g.textBaseline = "middle";
+        g.lineWidth = size * 0.12; g.strokeStyle = "#1b0f33"; g.lineJoin = "round"; g.strokeText(text, w / 2, h / 2);
+        g.fillStyle = color; g.fillText(text, w / 2, h / 2);
+      });
+    }
+    function blit(c, x, y, scale = 1, rot = 0, alpha = 1) {
+      const w = c.width / dpr * scale, h = c.height / dpr * scale;
+      if (alpha !== 1) ctx.globalAlpha = alpha;
+      if (rot) { ctx.save(); ctx.translate(x, y); ctx.rotate(rot); ctx.drawImage(c, -w / 2, -h / 2, w, h); ctx.restore(); }
+      else ctx.drawImage(c, x - w / 2, y - h / 2, w, h);
+      if (alpha !== 1) ctx.globalAlpha = 1;
+    }
+    window.addEventListener("resize", resize); resize();
 
     const chips = PLAYERS.map((p) => {
       const el = document.createElement("div");
@@ -308,7 +399,7 @@ button:focus-visible { outline: 4px solid var(--moon); outline-offset: 4px; }
         vy: H / (candy ? 9 : 8 + Math.random() * 4), phase: Math.random() * 6.28, wob: 10 + Math.random() * 18, t: 0 });
     }
     function burst(x, y, r, color, big) {
-      const n = big ? 40 : 16;
+      const n = Math.min(q(big ? 24 : 10), 160 - bits.length);
       for (let i = 0; i < n; i++) {
         const a = Math.random() * 6.28, s = (big ? 300 : 160) + Math.random() * 220;
         bits.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, r: 4 + Math.random() * (big ? 12 : 7), life: 0.7 + Math.random() * 0.4, t: 0, c: color });
@@ -324,6 +415,7 @@ button:focus-visible { outline: 4px solid var(--moon); outline-offset: 4px; }
       } catch (e) {}
     }
     function candyRain(n, only) {
+      n = Math.min(q(n), 45 - rain.length);
       for (let i = 0; i < n; i++) rain.push({ x: Math.random() * W, y: -40 - Math.random() * H * 0.6, vy: 180 + Math.random() * 220, rot: Math.random() * 6, vr: (Math.random() - .5) * 6, e: only || CANDY[i % CANDY.length], s: 34 + Math.random() * 40 });
     }
     function banner(text, color) { banners.push({ text, color, t: 0 }); }
@@ -337,7 +429,7 @@ button:focus-visible { outline: 4px solid var(--moon); outline-offset: 4px; }
         $("pail").classList.add("full");
         banner("Candy party!", "#9cf26b");
         partyTune();
-        candyRain(90);
+        candyRain(36);
         [0, 1, 2, 3].forEach((p, i) => setTimeout(() => parades.push({ p, t: 0, x: W * (0.15 + i * 0.23) }), i * 250));
         setTimeout(() => { bucket = 0; $("pailFill").style.height = "0%"; $("pail").classList.remove("full"); }, 7000);
       }
@@ -348,9 +440,9 @@ button:focus-visible { outline: 4px solid var(--moon); outline-offset: 4px; }
       const chip = chips[p]; chip.querySelector(".n").textContent = score[p];
       chip.classList.add("bump"); setTimeout(() => chip.classList.remove("bump"), 160);
       if (score[p] % MILESTONE === 0) {
-        parades.push({ p, t: 0, x: W * (0.25 + Math.random() * 0.5), cheer: true });
+        if (performance.now() >= partyUntil && !parades.some(pr => pr.cheer)) parades.push({ p, t: 0, x: W * (0.25 + Math.random() * 0.5), cheer: true });
         setTimeout(() => fanfare(), 60);
-        for (let k = 0; k < 5; k++) setTimeout(() => burst(Math.random() * W, Math.random() * H * 0.7, baseR(), PLAYERS[p].color, true), k * 120);
+        for (let k = 0; k < 2; k++) setTimeout(() => burst(Math.random() * W, Math.random() * H * 0.7, baseR(), PLAYERS[p].color, true), k * 120);
       }
     }
 
@@ -371,14 +463,14 @@ button:focus-visible { outline: 4px solid var(--moon); outline-offset: 4px; }
       const x = target.hx ?? target.x;
       if (target.candy === "pants") {
         burst(x, target.y, target.r, "#4fc3f7", true);
-        candyRain(45, "🩲");
+        candyRain(20, "🩲");
         banner("Where are my pants?!", "#4fc3f7");
         tone("sine", 500, 180, 0.7, 0.25, 0, 18);
         speak("Where are my pants?!");
         bump(p); addCandy(3);
       } else if (target.candy) {
         burst(x, target.y, target.r, "#ffd23f", true);
-        candyRain(30);
+        candyRain(14);
         banner(`${PLAYERS[p].face} ${PLAYERS[p].name} got the candy!`, PLAYERS[p].color);
         fanfare(1.2);
         bump(p); addCandy(5);
@@ -419,19 +511,20 @@ button:focus-visible { outline: 4px solid var(--moon); outline-offset: 4px; }
       ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText(e, x, y);
     }
 
-    let last = performance.now(), spawnAcc = 0;
+    let last = performance.now(), spawnAcc = 0, chipKey = "";
     function frame(now) {
       const dt = Math.min(0.05, (now - last) / 1000); last = now;
       const act = active(now);
-      chips.forEach((c, i) => c.classList.toggle("on", isActive(i, now)));
+      const onKey = [0, 1, 2, 3].map(i => isActive(i, now) ? 1 : 0).join("");
+      if (onKey !== chipKey) { chipKey = onKey; chips.forEach((c, i) => c.classList.toggle("on", onKey[i] === "1")); }
 
       // spawning
       const pool = act.length ? act : [0, 1, 2, 3];
       const perPlayer = !started ? 2 : act.length ? 6 : 3;
       spawnAcc += dt;
-      if (spawnAcc > (now < partyUntil ? 0.12 : 0.35)) {
+      if (spawnAcc > (now < partyUntil ? 0.2 : 0.35)) {
         spawnAcc = 0;
-        const cap = now < partyUntil ? perPlayer * 2 : perPlayer;
+        const cap = Math.round((now < partyUntil ? perPlayer * 1.5 : perPlayer) * (quality === 0 ? 0.67 : 1));
         const order = pool.slice().sort(() => Math.random() - .5);
         for (const p of order) if (bubbles.filter(b => b.p === p && !b.candy).length < cap) { spawn(p); break; }
       }
@@ -440,32 +533,18 @@ button:focus-visible { outline: 4px solid var(--moon); outline-offset: 4px; }
         nextCandyAt = now + 18000 + Math.random() * 10000;
       }
 
+      watchSpeed(now);
       ctx.clearRect(0, 0, W, H);
-      // stars
-      for (const s of stars) {
-        const a = 0.35 + 0.35 * Math.sin(now / 600 + s.ph);
-        ctx.globalAlpha = reduce ? 0.6 : a; ctx.beginPath(); ctx.arc(s.x * W, s.y * H, s.r, 0, 6.2832); ctx.fillStyle = "#fff6e6"; ctx.fill();
-      }
-      ctx.globalAlpha = 1;
+      const spin = !reduce && quality === 2;
 
       // bubbles
       for (const b of bubbles) {
         b.t += dt; b.y -= b.vy * dt;
         const x = b.x + (reduce ? 0 : Math.sin(b.t * 1.6 + b.phase) * b.wob);
         b.hx = x;
-        const col = b.candy ? `hsl(${(now / 6) % 360} 95% 65%)` : PLAYERS[b.p].color;
-        const g = ctx.createRadialGradient(x - b.r * .3, b.y - b.r * .35, b.r * .1, x, b.y, b.r);
-        g.addColorStop(0, "rgba(255,255,255,0.5)");
-        g.addColorStop(0.4, b.candy ? "rgba(255,210,63,0.45)" : col + "44");
-        g.addColorStop(1, b.candy ? "rgba(255,138,31,0.85)" : col + "bb");
-        ctx.beginPath(); ctx.arc(x, b.y, b.r, 0, 6.2832); ctx.fillStyle = g; ctx.fill();
-        ctx.lineWidth = Math.max(2, b.r * (b.candy ? 0.1 : 0.06)); ctx.strokeStyle = b.candy ? col : "rgba(255,255,255,0.7)"; ctx.stroke();
-        ctx.beginPath(); ctx.ellipse(x - b.r * .38, b.y - b.r * .42, b.r * .22, b.r * .12, -0.6, 0, 6.2832);
-        ctx.fillStyle = "rgba(255,255,255,0.85)"; ctx.fill();
-        const wig = reduce ? 0 : Math.sin(b.t * 5 + b.phase) * 0.15;
-        ctx.save(); ctx.translate(x, b.y + b.r * 0.05); ctx.rotate(wig);
-        drawEmoji(b.candy === "pants" ? "🩲" : b.candy ? "🍬" : PLAYERS[b.p].face, 0, 0, b.r * 0.95);
-        ctx.restore();
+        const spr = bubbleSprite(b.candy === "pants" ? "pants" : b.candy ? "candy" : b.p);
+        const pulse = b.candy && !reduce ? 1 + Math.sin(now / 150) * 0.05 : 1;
+        blit(spr, x, b.y, b.r / Math.ceil(baseR() * 1.5) * pulse, spin ? Math.sin(b.t * 5 + b.phase) * 0.07 : 0);
       }
       bubbles = bubbles.filter(b => b.y > -b.r * 1.2);
 
@@ -478,7 +557,8 @@ button:focus-visible { outline: 4px solid var(--moon); outline-offset: 4px; }
       for (const p of bits) {
         p.t += dt; p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 420 * dt; p.vx *= 0.98;
         const a = Math.max(0, 1 - p.t / p.life);
-        ctx.globalAlpha = a; ctx.beginPath(); ctx.arc(p.x, p.y, p.r * (0.5 + a * 0.5), 0, 6.2832); ctx.fillStyle = p.c; ctx.fill();
+        const rr = p.r * (0.5 + a * 0.5); ctx.globalAlpha = a; ctx.fillStyle = p.c;
+        if (quality === 2) { ctx.beginPath(); ctx.arc(p.x, p.y, rr, 0, 6.2832); ctx.fill(); } else ctx.fillRect(p.x - rr, p.y - rr, rr * 2, rr * 2);
       }
       ctx.globalAlpha = 1;
       bits = bits.filter(p => p.t < p.life);
@@ -486,7 +566,7 @@ button:focus-visible { outline: 4px solid var(--moon); outline-offset: 4px; }
       // falling candy
       for (const c of rain) {
         c.y += c.vy * dt; c.rot += c.vr * dt;
-        ctx.save(); ctx.translate(c.x, c.y); ctx.rotate(reduce ? 0 : c.rot); drawEmoji(c.e, 0, 0, c.s); ctx.restore();
+        blit(emojiSprite(c.e, 56), c.x, c.y, c.s / 56, spin ? c.rot : 0);
       }
       rain = rain.filter(c => c.y < H + 60);
 
@@ -496,24 +576,16 @@ button:focus-visible { outline: 4px solid var(--moon); outline-offset: 4px; }
         const rise = k < 0.3 ? 1 - Math.pow(1 - k / 0.3, 3) : k > 0.8 ? 1 - (k - 0.8) / 0.2 : 1;
         const size = Math.min(W, H) * (pr.cheer ? 0.38 : 0.26);
         const y = H + size - rise * (H * 0.5 + size * 0.5);
-        ctx.save(); ctx.translate(pr.x, y); ctx.rotate(reduce ? 0 : Math.sin(pr.t * 8) * 0.18);
-        drawEmoji(PLAYERS[pr.p].face, 0, 0, size); ctx.restore();
-        if (pr.cheer) {
-          ctx.font = `${Math.round(size * 0.22)}px Griffy, "Baloo 2", cursive`;
-          ctx.fillStyle = "#fff6e6"; ctx.textAlign = "center"; ctx.globalAlpha = rise;
-          ctx.fillText(`Yay, ${PLAYERS[pr.p].name}!`, pr.x, y - size * 0.62); ctx.globalAlpha = 1;
-        }
+        const big = Math.round(Math.min(W, H) * 0.38);
+        blit(emojiSprite(PLAYERS[pr.p].face, big), pr.x, y, size / big, reduce ? 0 : Math.sin(pr.t * 8) * 0.18);
+        if (pr.cheer) blit(textSprite(`Yay, ${PLAYERS[pr.p].name}!`, Math.round(size * 0.22), "#fff6e6"), pr.x, y - size * 0.62, 1, 0, Math.max(0, rise));
       }
       parades = parades.filter(pr => pr.t < 2.4);
 
       // banners
       for (const bn of banners) {
         bn.t += dt; const a = bn.t < 0.3 ? bn.t / 0.3 : bn.t > 2.2 ? Math.max(0, 1 - (bn.t - 2.2) / 0.4) : 1;
-        const size = Math.min(W * 0.07, H * 0.11);
-        ctx.font = `${Math.round(size)}px Griffy, "Baloo 2", cursive`;
-        ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.globalAlpha = a;
-        ctx.lineWidth = size * 0.12; ctx.strokeStyle = "#1b0f33"; ctx.strokeText(bn.text, W / 2, H * 0.3);
-        ctx.fillStyle = bn.color; ctx.fillText(bn.text, W / 2, H * 0.3); ctx.globalAlpha = 1;
+        blit(textSprite(bn.text, Math.round(Math.min(W * 0.07, H * 0.11)), bn.color), W / 2, H * 0.3, 1, 0, a);
       }
       banners = banners.filter(bn => bn.t < 2.6);
 
@@ -543,7 +615,7 @@ button:focus-visible { outline: 4px solid var(--moon); outline-offset: 4px; }
   // =====================================================================
   function startPad(code) {
     if (!code) { Net.askCode((c) => startPad(c)); return; }
-    $("pad").hidden = false;
+    $("pad").hidden = false; document.body.classList.add("on-pad");
     let me = -1, taps = 0, link = null;
     try { const s = localStorage.getItem("bubblepop-halloween"); if (s !== null) me = Number(s); } catch (e) {}
 
@@ -595,6 +667,7 @@ button:focus-visible { outline: 4px solid var(--moon); outline-offset: 4px; }
         if (ok) send();
       },
     });
+    Net.padMenuButton(link);
   }
 })();
 </script>

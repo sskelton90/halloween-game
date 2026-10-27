@@ -7,8 +7,9 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;800&family=Griffy&display=swap">
 <style>
+[hidden] { display: none !important; }
 :root {
-  --night: #1b0f33; --dusk: #3a1d63; --glow: #6b3fa0; --candy: #ff8a1f; --slime: #9cf26b; --text: #fff6e6;
+  --night: #1b0f33; --dusk: #3a1d63; --glow: #6b3fa0; --candy: #ff8a1f; --slime: #9cf26b; --text: #fff6e6; --ink: #1b0f33;
   --glass: rgba(255, 246, 230, 0.12); --glass-line: rgba(255, 246, 230, 0.32);
   color-scheme: dark;
 }
@@ -19,28 +20,77 @@ body {
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1.6rem; text-align: center;
   padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
   padding-block: calc(16px + env(safe-area-inset-top, 0px)) calc(16px + env(safe-area-inset-bottom, 0px));
-  box-sizing: border-box;
+  box-sizing: border-box; -webkit-tap-highlight-color: transparent;
 }
 h1 { margin: 0; font-family: "Griffy", "Baloo 2", cursive; font-weight: 400; font-size: clamp(2.6rem, 9vw, 6rem); line-height: 1; color: var(--candy); text-wrap: balance; }
-p { margin: 0; max-width: 36ch; font-size: 1.15rem; opacity: .9; }
-.games { display: flex; flex-wrap: wrap; gap: 1rem; justify-content: center; width: 100%; max-width: 720px; }
-a.game {
+p { margin: 0; max-width: 38ch; font-size: 1.15rem; opacity: .9; }
+.games { display: flex; flex-wrap: wrap; gap: 1rem; justify-content: center; width: 100%; max-width: 1100px; }
+.game {
   flex: 1 1 260px; text-decoration: none; color: inherit; border-radius: 28px; border: 2px solid var(--glass-line); background: var(--glass);
   padding: 1.4rem 1rem; display: flex; flex-direction: column; align-items: center; gap: .3rem; transition: transform .12s;
+  font-family: inherit; cursor: pointer;
 }
-a.game:active { transform: scale(.96); }
-a.game:focus-visible { outline: 4px solid var(--slime); outline-offset: 4px; }
+.game:active { transform: scale(.96); }
+.game:focus-visible { outline: 4px solid var(--slime); outline-offset: 4px; }
 .faces { font-size: 3rem; line-height: 1; }
 .name { font-size: 1.8rem; font-weight: 800; }
 .what { font-size: 1rem; opacity: .85; }
+.status { display: flex; align-items: center; gap: .5rem; font-size: 1rem; opacity: .9; }
+.dot { width: 12px; height: 12px; border-radius: 50%; background: var(--candy); flex: none; }
+.dot.ok { background: var(--slime); }
+body.phone .game { flex-basis: 100%; padding: 1.6rem 1rem; }
+body.phone .faces { font-size: 3.6rem; }
+@media (prefers-reduced-motion: reduce) { .game { transition: none; } }
 </style>
 </head>
 <body>
   <h1>Halloween Party Games</h1>
-  <p>Open a game on the TV and tap Big screen, then scan the QR code with each phone.</p>
+  <p id="lead">Open a game on the TV and tap Big screen, then scan the QR code with each phone.</p>
   <div class="games">
-    <a class="game" href="bubble.html"><span class="faces">🎃👻🦇🦉</span><span class="name">Bubble Pop</span><span class="what">Tap to pop your bubbles and fill the candy bucket</span></a>
-    <a class="game" href="pumpkin.html"><span class="faces">🎃✨</span><span class="name">Pumpkin Decorator</span><span class="what">Give the giant pumpkin a silly face, then light it up</span></a>
+    <a class="game" href="bubble.html" data-game="bubble"><span class="faces">🎃👻🦇🦉</span><span class="name">Bubble Pop</span><span class="what">Tap to pop your bubbles and fill the candy bucket</span></a>
+    <a class="game" href="pumpkin.html" data-game="pumpkin"><span class="faces">🎃✨</span><span class="name">Pumpkin Decorator</span><span class="what">Give your own pumpkin a silly face, then light it up</span></a>
+    <a class="game" href="race.html" data-game="race"><span class="faces">🏁🦇🐌</span><span class="name">Spooky Derby</span><span class="what">Tap to hop your racer to the finish. Everyone wins a prize!</span></a>
   </div>
+  <div class="status" id="status" hidden><span class="dot" id="dot"></span><span id="statusText">Looking for the TV…</span></div>
+
+<script src="peerjs.min.js"></script>
+<script src="qrcode.js"></script>
+<script src="net.js"></script>
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const cards = [...document.querySelectorAll(".game")];
+  const code = Net.codeFromUrl();
+
+  if (code) {
+    // A phone that followed the TV back here: pick the next game for everyone.
+    document.body.classList.add("phone");
+    $("lead").textContent = "Pick a game! It will start on the TV.";
+    $("status").hidden = false;
+    const link = Net.join("menu", code, {
+      onStatus: (s) => {
+        const ok = s === "open";
+        $("dot").classList.toggle("ok", ok);
+        $("statusText").textContent = ok ? "Connected to the TV" : "Looking for the TV…";
+      },
+    });
+    cards.forEach((c) => c.addEventListener("click", (e) => {
+      e.preventDefault();
+      if (link.isOpen()) { link.send({ t: "pick", game: c.dataset.game }); $("statusText").textContent = "Starting…"; }
+      else location.href = `${c.dataset.game}.html?join=${code}`; // TV not on this page: try the game directly
+    }));
+  } else if (Net.isTv()) {
+    // The TV coming back from a game: keep the same code so phones follow.
+    $("lead").textContent = "Pick a game here, or on any phone.";
+    const tv = Net.host("menu", {
+      onReady: (c) => Net.joinCard(c),
+      onJoin: () => Net.setCount(tv.count()),
+      onLeave: () => Net.setCount(tv.count()),
+      onMessage: (m) => { if (m.t === "pick" && Net.GAMES.includes(m.game)) tv.goto(m.game); },
+    });
+    cards.forEach((c) => c.addEventListener("click", (e) => { e.preventDefault(); tv.goto(c.dataset.game); }));
+  }
+})();
+</script>
 </body>
 </html>

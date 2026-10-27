@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&family=Griffy&display=swap">
 <style>
-/* Layout: the TV is a pumpkin patch at night with one giant pumpkin; each phone is a sticker box for its face. */
+/* Layout: the TV is a pumpkin patch at night with one pumpkin per player in a row; each phone is a sticker box for its own pumpkin. */
 :root {
   --night: #1b0f33;
   --dusk: #3a1d63;
@@ -48,6 +48,7 @@ body.lit .sky { filter: brightness(.45); }
 .moon::before, .moon::after { content: ""; position: absolute; top: 38%; width: 10%; height: 14%; border-radius: 50%; background: #6b5a2a; }
 .moon::before { left: 32%; } .moon::after { right: 32%; }
 .moon i { position: absolute; left: 30%; right: 30%; top: 56%; height: 16%; border-bottom: .5vmin solid #6b5a2a; border-radius: 0 0 50% 50%; }
+body.on-pad .moon, body.on-screen .moon { display: none; }
 .view {
   position: fixed; inset: 0; z-index: 1;
   padding-left: max(16px, env(safe-area-inset-left, 0px));
@@ -56,6 +57,7 @@ body.lit .sky { filter: brightness(.45); }
 }
 button { font-family: var(--body); color: inherit; cursor: pointer; }
 button:focus-visible { outline: 4px solid var(--moon); outline-offset: 3px; }
+.patdefs { position: absolute; width: 0; height: 0; overflow: hidden; }
 
 /* ---------- Home ---------- */
 .home { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1.4rem; text-align: center; }
@@ -92,8 +94,16 @@ button:focus-visible { outline: 4px solid var(--moon); outline-offset: 3px; }
 .topbar { width: 100%; box-sizing: border-box; display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; flex-wrap: wrap; padding-right: min(22vmin, 200px); }
 .brand { font-family: var(--display); font-size: clamp(1.6rem, 3.4vw, 2.8rem); color: var(--candy); }
 .hint { font-size: clamp(.9rem, 1.6vw, 1.2rem); background: var(--glass); border: 1px solid var(--glass-line); border-radius: 999px; padding: .4rem 1rem; max-width: 100%; }
-.stage { flex: 1; min-height: 0; width: 100%; display: flex; align-items: center; justify-content: center; }
-#bigPk { height: min(82vh, 120vw); max-width: 100%; pointer-events: auto; cursor: pointer; }
+.stage { flex: 1; min-height: 0; width: 100%; box-sizing: border-box; display: flex; align-items: center; justify-content: center; gap: 1.5vw;
+  padding-inline: min(13vw, 220px); padding-top: 4vh; }
+.stage.solo { padding-inline: 0; padding-top: 0; }
+.pk-slot { flex: 1 1 0; min-width: 0; max-width: 34vw; display: flex; flex-direction: column; align-items: center; gap: .5rem; }
+.stage.solo .pk-slot { max-width: none; }
+.pk-slot svg { width: 100%; height: auto; max-height: 62vh; pointer-events: auto; cursor: pointer; }
+.stage.solo .pk-slot svg { max-height: 74vh; }
+.badge { display: flex; align-items: center; gap: .4rem; padding: .1rem 1rem .1rem .5rem; border-radius: 999px; background: rgba(27, 15, 51, .6); border: 3px solid var(--c);
+  font-weight: 800; font-size: clamp(1rem, 2.2vw, 1.9rem); white-space: nowrap; }
+.badge span { font-size: 1.25em; line-height: 1; }
 .sway { transform-box: fill-box; transform-origin: 50% 100%; animation: sway 4s ease-in-out infinite; }
 @keyframes sway { 0%, 100% { transform: rotate(-1.5deg); } 50% { transform: rotate(1.5deg); } }
 .squish { animation: squish .45s ease-out; transform-box: fill-box; transform-origin: 50% 100%; }
@@ -103,30 +113,32 @@ button:focus-visible { outline: 4px solid var(--moon); outline-offset: 3px; }
 .dance { animation: dance .5s ease-in-out 8; transform-box: fill-box; transform-origin: 50% 100%; }
 @keyframes dance { 0%, 100% { transform: rotate(0) translateY(0); } 25% { transform: rotate(-8deg) translateY(-14px); } 75% { transform: rotate(8deg) translateY(-14px); } }
 .rollout { animation: rollout .7s ease-in forwards; transform-box: fill-box; transform-origin: center; }
-@keyframes rollout { to { transform: translateX(140%) rotate(220deg); opacity: 0; } }
+@keyframes rollout { to { transform: translateY(-30%) scale(.2) rotate(220deg); opacity: 0; } }
 .rollin { animation: rollin .8s cubic-bezier(.2, 1.2, .4, 1); transform-box: fill-box; transform-origin: center; }
-@keyframes rollin { from { transform: translateX(-140%) rotate(-220deg); } to { transform: none; } }
+@keyframes rollin { from { transform: translateY(40%) scale(.2) rotate(-220deg); opacity: 0; } to { transform: none; opacity: 1; } }
 .spark { position: fixed; z-index: 3; pointer-events: none; font-size: clamp(2rem, 5vmin, 4rem); animation: spark 1.6s ease-out forwards; }
 @keyframes spark { from { transform: translate(0, 0) scale(.3); opacity: 0; } 20% { opacity: 1; } to { transform: translate(var(--dx), var(--dy)) scale(1.2) rotate(40deg); opacity: 0; } }
-.toast { position: fixed; z-index: 3; left: 50%; bottom: calc(5vh + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%);
-  font-family: var(--display); font-size: clamp(1.6rem, 4vw, 3.4rem); color: var(--slime); text-shadow: 0 4px 0 rgba(0,0,0,.4); white-space: nowrap; pointer-events: none; transition: opacity .3s; }
+.toast { position: fixed; z-index: 3; left: 50%; bottom: calc(3vh + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%);
+  font-family: var(--display); font-size: clamp(1.4rem, 3.4vw, 3rem); color: var(--slime); text-shadow: 0 4px 0 rgba(0,0,0,.4); white-space: nowrap; pointer-events: none; transition: opacity .3s; }
 .start { position: fixed; inset: 0; z-index: 7; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1.2rem;
-  background: rgba(27, 15, 51, .6); text-align: center; pointer-events: auto; }
+  background: rgba(27, 15, 51, .6); text-align: center; pointer-events: auto; padding-inline: 16px; }
 .start button { font-size: clamp(2rem, 5vw, 3.5rem); font-weight: 800; padding: .5rem 2.4rem; border-radius: 999px; border: 0; background: var(--candy); color: var(--ink); box-shadow: 0 8px 0 rgba(0,0,0,.4); }
-.start p { margin: 0; font-size: clamp(1rem, 2vw, 1.4rem); max-width: 44ch; }
+.start p { margin: 0; font-size: clamp(1rem, 2vw, 1.4rem); max-width: 46ch; }
 
 /* speech bubble, hiding spots and things flying around */
-.speech { position: fixed; z-index: 5; left: 0; top: 0; max-width: min(42vw, 560px); pointer-events: none;
-  background: var(--text); color: var(--ink); font-family: var(--display); font-size: clamp(1.5rem, 3.4vw, 3rem); line-height: 1.1;
+.speech { position: fixed; z-index: 5; left: 0; top: 0; max-width: min(36vw, 520px); pointer-events: none;
+  background: var(--text); color: var(--ink); font-family: var(--display); font-size: clamp(1.4rem, 3vw, 2.8rem); line-height: 1.1;
   padding: .5rem 1.1rem .6rem; border-radius: 28px; border: 4px solid var(--ink); box-shadow: 0 8px 0 rgba(0,0,0,.35); text-wrap: balance; }
-.speech::after { content: ""; position: absolute; left: -22px; top: 40%; border: 14px solid transparent; border-right: 22px solid var(--ink); border-left: 0; }
+.speech::after { content: ""; position: absolute; }
+.speech.side::after { left: -22px; top: 40%; border: 14px solid transparent; border-right: 22px solid var(--ink); border-left: 0; }
+.speech.above::after { left: 50%; margin-left: -14px; bottom: -22px; border: 14px solid transparent; border-top: 22px solid var(--ink); border-bottom: 0; }
 .speech.pop { animation: speechpop .35s cubic-bezier(.3, 1.6, .5, 1); }
 @keyframes speechpop { from { transform: scale(.4); opacity: 0; } to { transform: none; opacity: 1; } }
-.prop { position: absolute; padding: 0; border: 0; background: none; pointer-events: auto; line-height: 0; }
+.prop { position: absolute; padding: 0; border: 0; background: none; pointer-events: auto; line-height: 0; z-index: 0; }
 .prop svg { width: 100%; height: auto; display: block; overflow: visible; }
-#prop-cloud { left: 3vw; top: 22vh; width: min(19vw, 260px); }
-#prop-bush { left: 2vw; bottom: 3vh; width: min(21vw, 290px); }
-#prop-tree { right: 3vw; bottom: 2vh; width: min(14vw, 200px); }
+#prop-cloud { left: 2vw; top: 14vh; width: min(15vw, 230px); }
+#prop-bush { left: 1vw; bottom: 3vh; width: min(14vw, 230px); }
+#prop-tree { right: 2vw; bottom: 2vh; width: min(10vw, 170px); }
 .rummage { animation: rummage .09s linear 8; transform-origin: 50% 100%; }
 @keyframes rummage { 0%, 100% { transform: rotate(0); } 50% { transform: rotate(4deg) translateY(-3px); } }
 .flyer { position: fixed; left: 0; top: 0; z-index: 4; pointer-events: none; display: flex; flex-direction: column; align-items: center; will-change: transform; }
@@ -134,11 +146,20 @@ button:focus-visible { outline: 4px solid var(--moon); outline-offset: 3px; }
 
 /* ---------- Controller ---------- */
 .pad { display: flex; flex-direction: column; gap: .8rem; }
-.pad-top { display: flex; justify-content: space-between; align-items: center; gap: .75rem; }
-.status { font-size: .95rem; display: flex; align-items: center; gap: .5rem; min-width: 0; }
+.pad-top { display: flex; justify-content: space-between; align-items: center; gap: .6rem; }
+.me-btn { display: flex; align-items: center; gap: .35rem; border: 3px solid var(--c); background: var(--glass); border-radius: 999px; padding: .2rem .8rem .2rem .4rem; font-size: 1rem; font-weight: 800; flex: none; }
+.me-btn span { font-size: 1.5rem; line-height: 1; }
+.status { font-size: .95rem; display: flex; align-items: center; gap: .45rem; min-width: 0; flex: 1; }
 .dot { width: 12px; height: 12px; border-radius: 50%; background: var(--candy); flex: none; }
 .dot.ok { background: var(--slime); }
 .small-btn { background: var(--glass); border: 1px solid var(--glass-line); border-radius: 999px; padding: .4rem .9rem; font-size: .95rem; font-weight: 700; flex: none; }
+.who { flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 1rem; }
+.who h2 { margin: 0; text-align: center; font-family: var(--display); font-weight: 400; font-size: 2.2rem; color: var(--candy); }
+.whogrid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; width: 100%; max-width: 520px; margin-inline: auto; }
+.pick { aspect-ratio: 1; max-width: 100%; border-radius: 32px; border: 0; background: var(--c);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 4.2rem; line-height: 1; box-shadow: inset 0 -10px 0 rgba(0,0,0,.2); }
+.pick span { font-size: 1.3rem; font-weight: 800; color: var(--ink); margin-top: .3rem; }
+.deco { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: .8rem; }
 .tabs { display: grid; grid-template-columns: repeat(7, 1fr); gap: .35rem; }
 .tab { aspect-ratio: 1; max-width: 100%; border-radius: 16px; border: 3px solid transparent; background: var(--glass); font-size: clamp(1.3rem, 6vw, 2rem); line-height: 1; display: flex; align-items: center; justify-content: center; padding: 0; }
 .tab.on { background: var(--candy); border-color: var(--text); }
@@ -148,7 +169,6 @@ button:focus-visible { outline: 4px solid var(--moon); outline-offset: 3px; }
 .tile span { font-weight: 800; font-size: 1.05rem; }
 .tile.on { border-color: var(--slime); background: rgba(156, 242, 107, .15); }
 .tile:active { transform: scale(.94); }
-body.on-pad .moon { display: none; }
 .actions { display: grid; grid-template-columns: 1fr 1.4fr; gap: .7rem; }
 .act { border: 0; border-radius: 22px; padding: .8rem .5rem; font-size: 1.35rem; font-weight: 800; box-shadow: 0 6px 0 rgba(0,0,0,.35); }
 .act:active { transform: translateY(4px); box-shadow: 0 2px 0 rgba(0,0,0,.35); }
@@ -168,6 +188,42 @@ body.on-pad .moon { display: none; }
 .spotbtn.tried { opacity: .4; }
 .spotbtn.tried span::after { content: " – not here!"; font-size: .7em; font-weight: 700; }
 .spotbtn:active { transform: scale(.96); }
+/* ---------- Controller sizing: phones, iPads, either way round ---------- */
+.pad, .event { height: 100dvh; box-sizing: border-box; }
+.tabs { grid-template-columns: repeat(7, minmax(0, 1fr)); width: 100%; max-width: 680px; margin-inline: auto; }
+.tab { aspect-ratio: auto; height: clamp(46px, 11vw, 70px); }
+.tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.whogrid { width: min(520px, 100%, calc((100dvh - 12rem) * 1)); }
+@media (min-width: 600px) and (orientation: portrait) {
+  .tiles { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .actions { max-width: 680px; width: 100%; margin-inline: auto; }
+}
+/* Landscape: tabs down the left, buttons down the right, every option in the middle */
+@media (orientation: landscape) and (min-width: 600px) {
+  .deco { display: grid; grid-template-columns: auto minmax(0, 1fr) clamp(140px, 19vw, 230px); grid-template-rows: minmax(0, 1fr); gap: .8rem; }
+  .tabs { grid-template-columns: 1fr; grid-auto-rows: minmax(0, 1fr); width: clamp(50px, 9dvh, 78px); max-width: none; margin: 0; min-height: 0; }
+  .tab { height: auto; min-height: 0; font-size: clamp(1.2rem, 4.5dvh, 2rem); }
+  .tiles { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .actions { grid-template-columns: 1fr; grid-template-rows: 1fr 1.4fr; }
+  .act { font-size: clamp(1.1rem, 2.4vw, 1.6rem); }
+  .whogrid { grid-template-columns: repeat(4, minmax(0, 1fr)); width: min(900px, 100%, calc((100dvh - 10rem) * 4 + 3rem)); max-width: none; }
+  .who h2 { font-size: clamp(1.6rem, 6dvh, 2.4rem); }
+  .spots { grid-template-columns: repeat(3, minmax(0, 1fr)); max-width: 820px; }
+  .spotbtn { flex-direction: column; text-align: center; gap: .3rem; }
+  .spotbtn svg { width: 100%; height: clamp(60px, 22dvh, 160px); }
+  .bigpants { width: min(420px, 90vw, 90dvh); }
+}
+@media (orientation: landscape) and (min-width: 1000px) {
+  .tiles { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+/* Short landscape phones: smaller tile labels so two rows fit */
+@media (orientation: landscape) and (max-height: 500px) {
+  .tiles { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .5rem; }
+  .tile span { font-size: .9rem; }
+  .pick { font-size: 2.6rem; border-radius: 22px; }
+  .pick span { font-size: 1rem; }
+  .event h2 { font-size: 1.6rem; }
+}
 @media (prefers-reduced-motion: reduce) {
   .sway, .dance, .squish, .shiver, .rummage, .pk .pupil, .pk .flap, .rollout, .rollin, .bigpants { animation: none !important; }
   .pk .part.drop, .speech.pop { animation-duration: .01s; }
@@ -179,6 +235,7 @@ body.on-pad .moon { display: none; }
 
 <div class="sky"></div>
 <div class="moon" aria-hidden="true"><i></i></div>
+<svg class="patdefs" aria-hidden="true"><defs id="patDefs"></defs></svg>
 
 <section class="view home" id="home">
   <svg class="pk mini" id="homePk" viewBox="0 -40 400 440" aria-hidden="true"></svg>
@@ -195,30 +252,35 @@ body.on-pad .moon { display: none; }
     <div class="brand">Pumpkin Decorator</div>
     <div class="hint" id="hint">Open this link on a phone and tap Controller</div>
   </div>
-  <div class="stage">
-    <svg class="pk" id="bigPk" viewBox="0 -40 400 440" role="img" aria-label="The pumpkin"></svg>
-  </div>
   <button class="prop" id="prop-cloud" aria-label="Cloud"></button>
   <button class="prop" id="prop-bush" aria-label="Bush"></button>
   <button class="prop" id="prop-tree" aria-label="Tree"></button>
+  <div class="stage solo" id="stage"></div>
 </section>
 <div class="speech" id="speech" hidden></div>
 <div class="toast" id="toast" hidden></div>
 <div class="start" id="start" hidden>
   <button id="startBtn">Start!</button>
-  <p>Starting turns the sound on. Without phones: tap the pumpkin for a surprise, L lights it, N is a new pumpkin, P puts pants back on, and 1–3 check the cloud, bush and tree.</p>
+  <p>Starting turns the sound on. Without phones: tap a pumpkin for a surprise, 1–4 add pumpkins, L lights them, N gives new ones, P puts pants back on, and C, B or T check the cloud, bush or tree.</p>
 </div>
 
 <section class="view pad" id="pad" hidden>
   <div class="pad-top">
-    <div class="status"><span class="dot" id="dot"></span><span id="statusText">Looking for the big screen…</span></div>
-    <button class="small-btn" id="newBtn">New pumpkin</button>
+    <button class="me-btn" id="meBtn" hidden aria-label="Change character"></button>
+    <div class="status"><span class="dot" id="dot"></span><span id="statusText">Looking for the TV…</span></div>
+    <button class="small-btn" id="newBtn" hidden>New pumpkin</button>
   </div>
-  <div class="tabs" id="tabs" role="tablist"></div>
-  <div class="tiles" id="tiles"></div>
-  <div class="actions">
-    <button class="act surprise" id="surpriseBtn">🎲 Surprise!</button>
-    <button class="act light" id="lightBtn">✨ Light it up!</button>
+  <div class="who" id="who">
+    <h2>Who are you?</h2>
+    <div class="whogrid" id="whogrid"></div>
+  </div>
+  <div class="deco" id="deco" hidden>
+    <div class="tabs" id="tabs" role="tablist"></div>
+    <div class="tiles" id="tiles"></div>
+    <div class="actions">
+      <button class="act surprise" id="surpriseBtn">🎲 Surprise!</button>
+      <button class="act light" id="lightBtn">✨ Light it up!</button>
+    </div>
   </div>
 </section>
 <div class="event" id="eventPanel" hidden>
@@ -232,6 +294,14 @@ body.on-pad .moon { display: none; }
 <script>
 (() => {
   const $ = (id) => document.getElementById(id);
+
+  const PLAYERS = [
+    { name: "Ghost", face: "👻", color: "#c9ecff" },
+    { name: "Owl",   face: "🦉", color: "#ffd23f" },
+    { name: "Cat",   face: "🐱", color: "#ff8fc8" },
+    { name: "Frog",  face: "🐸", color: "#57d07a" },
+  ];
+  const okPlayer = (p) => Number.isInteger(p) && p >= 0 && p < PLAYERS.length;
 
   // ---------- Pumpkin parts (all drawn in a 400 x 400 space) ----------
   const EL = 150, ER = 250, EY = 205;
@@ -249,7 +319,7 @@ body.on-pad .moon { display: none; }
     blue:   { name: "Blue",   body: "#5fb8ff", rib: "#2f86d0" },
   };
 
-  // underpants: one shape, six prints
+  // underpants: one shape, six prints (patterns live once in #patDefs)
   const PANTS_PATH = "M116 316 L284 316 L288 338 C268 350 252 360 242 386 L222 388 C214 372 207 364 200 364 C193 364 186 372 178 388 L158 386 C148 360 132 350 112 338 Z";
   const PRINTS = {
     stripy:  { name: "Stripy",  pat: `<pattern id="pp-stripy" width="24" height="24" patternUnits="userSpaceOnUse" patternTransform="rotate(35)"><rect width="24" height="24" fill="#4fc3f7"/><rect width="11" height="24" fill="#fff"/></pattern>` },
@@ -259,7 +329,8 @@ body.on-pad .moon { display: none; }
     stars:   { name: "Stars",   pat: `<pattern id="pp-stars" width="24" height="24" patternUnits="userSpaceOnUse"><rect width="24" height="24" fill="#24306e"/><path d="M12 4 L14 10 L20 12 L14 14 L12 20 L10 14 L4 12 L10 10 Z" fill="#ffd23f"/></pattern>` },
     bats:    { name: "Bats",    pat: `<pattern id="pp-bats" width="26" height="26" patternUnits="userSpaceOnUse"><rect width="26" height="26" fill="#9cf26b"/><path d="M13 10 C10 6 5 6 3 8 C6 9 6 11 5 13 C8 11 11 12 13 14 C15 12 18 11 21 13 C20 11 20 9 23 8 C21 6 16 6 13 10Z" fill="#4b2c80"/></pattern>` },
   };
-  const pantsSvg = (k) => `<defs>${PRINTS[k].pat}</defs><g transform="translate(0 12)"><path d="${PANTS_PATH}" fill="url(#pp-${k})" stroke="#2a1a40" stroke-width="4" stroke-linejoin="round"/><rect x="113" y="309" width="174" height="16" rx="7" fill="#fff6e6" stroke="#2a1a40" stroke-width="4"/></g>`;
+  $("patDefs").innerHTML = Object.values(PRINTS).map(p => p.pat).join("");
+  const pantsSvg = (k) => `<g transform="translate(0 12)"><path d="${PANTS_PATH}" fill="url(#pp-${k})" stroke="#2a1a40" stroke-width="4" stroke-linejoin="round"/><rect x="113" y="309" width="174" height="16" rx="7" fill="#fff6e6" stroke="#2a1a40" stroke-width="4"/></g>`;
   const PANTS_VIEW = "104 310 192 100";
 
   const SLOTS = [
@@ -315,6 +386,12 @@ body.on-pad .moon { display: none; }
   SLOT.extra.options.bat.svg = BAT;
   const ORDER = ["colour", "hat", "pants", "eyes", "nose", "mouth", "extra"]; // draw order
   const blankFace = () => ({ colour: "orange", eyes: null, nose: null, mouth: null, hat: null, pants: null, extra: null });
+  function cleanFace(f) {
+    const nf = blankFace(); if (!f || typeof f !== "object") return nf;
+    for (const k of Object.keys(nf)) { const v = f[k]; if (v === null || (typeof v === "string" && SLOT[k].options[v])) nf[k] = v; }
+    if (!nf.colour) nf.colour = "orange";
+    return nf;
+  }
 
   // hiding places for the hat
   const SPOTS = {
@@ -400,57 +477,101 @@ body.on-pad .moon { display: none; }
   $("goScreen").onclick = () => { $("home").hidden = true; startScreen(); };
   $("goPad").onclick = () => { $("home").hidden = true; startPad(Net.codeFromUrl()); };
   if (Net.codeFromUrl()) { $("home").hidden = true; startPad(Net.codeFromUrl()); }
+  else if (Net.tvFromUrl()) { $("home").hidden = true; startScreen(); }
 
   // =====================================================================
   // BIG SCREEN
   // =====================================================================
   function startScreen() {
     document.body.classList.add("on-screen");
-    $("homePk").innerHTML = ""; // its pattern ids would shadow the visible ones
+    Net.tvMenuButton();
     $("screen").hidden = false; $("start").hidden = false;
-    const svg = $("bigPk");
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    let face = blankFace(), litTimer = 0, toastTimer = 0, sayTimer = 0, busy = false, started = false;
-    let event = null, nextEventAt = Infinity;
-    const queue = [];
-    svg.innerHTML = `<g id="wrap" class="sway"><g id="pkg">${pumpkinSVG(face)}</g></g>`;
+    const stage = $("stage");
+    const P = PLAYERS.map((pl, i) => ({ i, pl, face: blankFace(), slot: null, svg: null, pkg: null, queue: [], busy: false, litTimer: 0, here: false, local: false }));
+    const lit = new Set();
+    let started = false, event = null, nextEventAt = Infinity, sayTimer = 0, toastTimer = 0, layoutKey = "", playersKey = "";
     for (const [k, s] of Object.entries(SPOTS)) $("prop-" + k).innerHTML = `<svg viewBox="${s.view}" aria-hidden="true">${s.svg}</svg>`;
 
-    const pkg = () => $("pkg");
-    const link = connectScreen({ onAct: handleAct });
-    const share = () => link.share({ face, mode: event ? { type: event.type, saved: event.saved, tried: event.tried ? [...event.tried] : [] } : null });
-    function restart(el, cls) { el.classList.remove(cls); void el.getBoundingClientRect(); el.classList.add(cls); }
-    function render(dropped) { pkg().innerHTML = pumpkinSVG(face, dropped); }
+    // ----- which pumpkins are on screen -----
+    function visible() { const v = P.filter(x => x.here || x.local); return v.length ? v : [P[0]]; }
+    function makeSlot(x) {
+      const d = document.createElement("div");
+      d.className = "pk-slot"; d.style.setProperty("--c", x.pl.color);
+      d.innerHTML = `<svg class="pk" viewBox="0 -40 400 440" role="img" aria-label="${x.pl.name}'s pumpkin"><g class="sway" style="animation-delay:${-x.i * 0.9}s"><g class="pkg">${pumpkinSVG(x.face)}</g></g></svg><div class="badge"><span>${x.pl.face}</span>${x.pl.name}</div>`;
+      x.slot = d; x.svg = d.querySelector("svg"); x.pkg = d.querySelector(".pkg");
+      if (lit.has(x.i)) x.svg.classList.add("lit");
+      x.svg.addEventListener("pointerdown", () => { if (started) randomOne(x); });
+    }
+    function layout() {
+      const vis = visible();
+      const key = vis.map(x => x.i).join(",");
+      if (key === layoutKey) return;
+      layoutKey = key;
+      for (const x of P) if (!vis.includes(x) && x.slot) {
+        if (event && event.p === x.i) cancelEvent();
+        x.slot.remove(); x.slot = x.svg = x.pkg = null; lit.delete(x.i);
+      }
+      for (const x of vis) { if (!x.slot) makeSlot(x); stage.appendChild(x.slot); }
+      stage.classList.toggle("solo", vis.length === 1);
+      document.body.classList.toggle("lit", lit.size > 0);
+      $("speech").hidden = true;
+    }
+
+    const link = connectScreen({
+      onAct: (p, a) => handleAct(p, a),
+      onPlayers: (set) => {
+        const key = [...set].sort().join(",");
+        if (key === playersKey) return;
+        playersKey = key;
+        P.forEach(x => { x.here = set.has(x.i); });
+        layout(); share();
+      },
+    });
+    function share() {
+      link.share({ faces: P.map(x => x.face), mode: event ? { p: event.p, type: event.type, saved: event.saved, tried: event.tried ? [...event.tried] : [] } : null });
+    }
+    function restart(el, cls) { if (!el) return; el.classList.remove(cls); void el.getBoundingClientRect(); el.classList.add(cls); }
+    function render(x, dropped) { if (x.pkg) x.pkg.innerHTML = pumpkinSVG(x.face, dropped); }
     function toast(text) {
       const t = $("toast"); t.textContent = text; t.hidden = false; t.style.opacity = 1;
       clearTimeout(toastTimer); toastTimer = setTimeout(() => { t.style.opacity = 0; }, 1400);
     }
-    function say(text, mood = "happy", ms = 3400) {
+    // pumpkin coordinates -> screen pixels
+    function pt(x, px, py) { const m = x.svg.getScreenCTM(); const p = x.svg.createSVGPoint(); p.x = px; p.y = py; const s = p.matrixTransform(m); return { x: s.x, y: s.y }; }
+    const scale = (x) => x.svg.getScreenCTM().a;
+    function say(x, text, mood = "happy", ms = 3400) {
+      if (!x.svg) return;
       const b = $("speech"); b.textContent = text; b.hidden = false;
-      const r = svg.getBoundingClientRect();
-      const w = b.offsetWidth;
-      b.style.left = Math.max(12, Math.min(innerWidth - w - 12, r.left + r.width * 0.8)) + "px";
-      b.style.top = (r.top + r.height * 0.3) + "px";
+      const solo = stage.classList.contains("solo");
+      b.classList.toggle("side", solo); b.classList.toggle("above", !solo);
+      const w = b.offsetWidth, h = b.offsetHeight;
+      if (solo) {
+        const a = pt(x, 392, 170);
+        b.style.left = Math.max(12, Math.min(innerWidth - w - 12, a.x + 14)) + "px";
+        b.style.top = (a.y - h * 0.4) + "px";
+      } else {
+        const a = pt(x, 200, -20);
+        b.style.left = Math.max(12, Math.min(innerWidth - w - 12, a.x - w / 2)) + "px";
+        b.style.top = Math.max(60, a.y - h - 16) + "px";
+      }
       restart(b, "pop");
       clearTimeout(sayTimer); sayTimer = setTimeout(() => { b.hidden = true; }, ms);
       speak(text, mood);
     }
-    // pumpkin coordinates -> screen pixels
-    function pt(x, y) { const m = svg.getScreenCTM(); const p = svg.createSVGPoint(); p.x = x; p.y = y; const s = p.matrixTransform(m); return { x: s.x, y: s.y }; }
-    const scale = () => svg.getScreenCTM().a;
     const tf = (x, y, rot = 0, s = 1) => `translate(${x}px, ${y}px) translate(-50%, -50%) rotate(${rot}deg) scale(${s})`;
     function makeFlyer(html) { const el = document.createElement("div"); el.className = "flyer"; el.innerHTML = html; document.body.appendChild(el); return el; }
     const fly = (el, frames, ms, easing = "ease-in-out") => el.animate(frames.map(f => ({ transform: tf(...f) })), { duration: reduce ? 1 : ms, easing, fill: "forwards" }).finished.catch(() => {});
     const centre = (el) => { const r = el.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; };
 
-    function sparkles(n = 14) {
-      const r = svg.getBoundingClientRect();
-      const cx = r.left + r.width / 2, cy = r.top + r.height * .55;
+    function sparkles(x, n = 12) {
+      if (!x.svg) return;
+      const c = pt(x, 200, 250), d0 = scale(x) * 300;
       const pool = ["✨", "⭐", "🍬", "🌟", "🍭"];
       for (let i = 0; i < n; i++) {
         const s = document.createElement("div"); s.className = "spark"; s.textContent = pool[i % pool.length];
-        const a = Math.random() * 6.28, d = r.width * (.4 + Math.random() * .4);
-        s.style.left = cx + "px"; s.style.top = cy + "px";
+        const a = Math.random() * 6.28, d = d0 * (.5 + Math.random() * .4);
+        s.style.left = c.x + "px"; s.style.top = c.y + "px";
         s.style.setProperty("--dx", Math.cos(a) * d + "px"); s.style.setProperty("--dy", Math.sin(a) * d * .8 + "px");
         s.style.animationDelay = (i * 60) + "ms";
         document.body.appendChild(s); setTimeout(() => s.remove(), 2600);
@@ -458,111 +579,122 @@ body.on-pad .moon { display: none; }
     }
 
     // ----- decorating -----
-    function apply(slot, value) {
+    function apply(x, slot, value) {
       if (!validPick(slot, value)) return;
+      const mine = event && event.p === x.i;
       if (slot === "pants") {
         if (value === "off") {
-          if (event && event.type === "pants") return;
-          const had = !!face.pants; face.pants = null; render(); restart(pkg(), "shiver"); wah();
-          say(had ? "Where are my pants?!" : "I've got no pants on!", "wail"); share(); return;
+          if (mine && event.type === "pants") return;
+          const had = !!x.face.pants; x.face.pants = null; render(x); restart(x.pkg, "shiver"); wah();
+          say(x, had ? "Where are my pants?!" : "I've got no pants on!", "wail"); share(); return;
         }
-        if (event && event.type === "pants") { pantsBack(value); return; }
+        if (mine && event.type === "pants") { pantsBack(x.i, value); return; }
       }
-      if (slot === "hat" && event && event.type === "hat" && !event.busy) { endHatHunt(); face.hat = value; render("hat"); boing("hat"); say("Ooh! A new hat!", "happy"); share(); return; }
-      face[slot] = value;
-      render(slot === "colour" ? null : slot);
-      restart(pkg(), "squish");
+      if (slot === "hat" && mine && event.type === "hat" && !event.busy) { endHatHunt(); x.face.hat = value; render(x, "hat"); boing("hat"); say(x, "Ooh! A new hat!", "happy"); share(); return; }
+      x.face[slot] = value;
+      render(x, slot === "colour" ? null : slot);
+      restart(x.pkg, "squish");
       boing(slot);
-      toast(`${SLOT[slot].options[value].name}!`);
+      toast(`${x.pl.face} ${SLOT[slot].options[value].name}!`);
       share();
     }
-    function lightUp() {
-      svg.classList.add("lit"); document.body.classList.add("lit");
-      restart(pkg(), "dance"); tada(); sparkles(); toast("Ta-da!");
-      clearTimeout(litTimer);
-      litTimer = setTimeout(() => { svg.classList.remove("lit"); document.body.classList.remove("lit"); pkg().classList.remove("dance"); }, 4200);
+    function lightUp(x) {
+      if (!x.svg) return;
+      x.svg.classList.add("lit"); lit.add(x.i); document.body.classList.add("lit");
+      restart(x.pkg, "dance"); tada(); sparkles(x); toast(`${x.pl.face} Ta-da!`);
+      clearTimeout(x.litTimer);
+      x.litTimer = setTimeout(() => {
+        lit.delete(x.i); if (x.svg) x.svg.classList.remove("lit"); if (x.pkg) x.pkg.classList.remove("dance");
+        document.body.classList.toggle("lit", lit.size > 0);
+      }, 4200);
     }
-    function freshPumpkin() {
-      cancelEvent();
-      const wrap = pkg();
-      whoosh(); restart(wrap, "rollout");
+    function freshPumpkin(x) {
+      if (event && event.p === x.i) cancelEvent();
+      whoosh(); restart(x.pkg, "rollout");
       setTimeout(() => {
-        face = blankFace();
-        wrap.classList.remove("rollout");
-        render();
-        restart(wrap, "rollin"); boing("colour"); toast("New pumpkin!");
-        share(); scheduleEvent();
+        x.face = blankFace();
+        if (x.pkg) { x.pkg.classList.remove("rollout"); render(x); restart(x.pkg, "rollin"); }
+        boing("colour"); toast(`${x.pl.face} New pumpkin!`);
+        share();
       }, 700);
     }
     function randomPicks() {
       return SLOTS.map(s => { const keys = Object.keys(s.options).filter(k => k !== "off"); return { s: s.id, v: keys[Math.floor(Math.random() * keys.length)] }; });
     }
-    function enqueue(a) { queue.push(a); if (!busy) drain(); }
-    function drain() {
-      const a = queue.shift(); if (!a) { busy = false; return; }
-      busy = true;
-      if (a.type === "pick") apply(a.s, a.v);
-      else if (a.type === "light") lightUp();
-      else if (a.type === "new") freshPumpkin();
-      setTimeout(drain, a.type === "new" ? 1000 : 260);
+    function randomOne(x) { const p = randomPicks(); enqueue(x, { type: "pick", ...p[1 + Math.floor(Math.random() * (p.length - 1))] }); }
+    function enqueue(x, a) { x.queue.push(a); if (!x.busy) drain(x); }
+    function drain(x) {
+      const a = x.queue.shift(); if (!a) { x.busy = false; return; }
+      x.busy = true;
+      if (x.slot) {
+        if (a.type === "pick") apply(x, a.s, a.v);
+        else if (a.type === "light") lightUp(x);
+        else if (a.type === "new") freshPumpkin(x);
+      }
+      setTimeout(() => drain(x), a.type === "new" ? 1000 : 260);
     }
 
     // ----- gag 1: the pants blow away -----
-    function pantsBlowOff() {
-      const saved = face.pants; if (!saved) return;
-      const from = pt(200, 362), k = scale();
-      event = { type: "pants", saved };
-      face.pants = null; render();
+    function pantsBlowOff(x) {
+      const saved = x.face.pants; if (!saved || !x.svg) return;
+      const from = pt(x, 200, 362), k = scale(x);
+      event = { p: x.i, type: "pants", saved };
+      x.face.pants = null; render(x);
       const el = makeFlyer(`<svg class="pk" viewBox="${PANTS_VIEW}" style="width:${192 * k}px">${pantsSvg(saved)}</svg>`);
       event.el = el;
-      wind(); restart(pkg(), "shiver");
+      wind(); restart(x.pkg, "shiver");
       const W = innerWidth, H = innerHeight;
-      fly(el, [[from.x, from.y, 0], [W * .72, H * .4, 160, 1], [W * .6, H * .2, 340, .8]], 1800, "ease-out").then(() => {
+      const hx = from.x < W / 2 ? W * .7 : W * .3;
+      fly(el, [[from.x, from.y, 0], [hx, H * .45, 160, 1], [hx, H * .22, 340, .8]], 1800, "ease-out").then(() => {
         if (!event || event.el !== el || reduce) return;
         event.drift = el.animate([
-          { transform: tf(W * .6, H * .2, -10, .8) }, { transform: tf(W * .7, H * .26, 12, .8) },
-          { transform: tf(W * .58, H * .3, -12, .8) }, { transform: tf(W * .6, H * .2, -10, .8) }],
+          { transform: tf(hx, H * .22, -10, .8) }, { transform: tf(hx + W * .08, H * .28, 12, .8) },
+          { transform: tf(hx - W * .04, H * .32, -12, .8) }, { transform: tf(hx, H * .22, -10, .8) }],
           { duration: 4200, iterations: Infinity, easing: "ease-in-out" });
       });
-      setTimeout(() => say("Where are my pants?!", "wail", 4000), 500);
-      event.nag = setInterval(() => say("Where are my pants?!", "wail", 3000), 10000);
-      event.giveUp = setTimeout(() => pantsBack(null, true), 50000);
+      const ev = event;
+      setTimeout(() => { if (event === ev) say(x, "Where are my pants?!", "wail", 4000); }, 500);
+      ev.nag = setInterval(() => say(x, "Where are my pants?!", "wail", 3000), 10000);
+      ev.giveUp = setTimeout(() => pantsBack(null, null, true), 50000);
       share();
     }
-    function pantsBack(chosen, byThemselves) {
+    function pantsBack(p, chosen, byThemselves) {
       if (!event || event.type !== "pants" || event.returning) return;
-      const ev = event; ev.returning = true;
+      if (p !== null && p !== undefined && p !== event.p) return;
+      const ev = event, x = P[ev.p]; ev.returning = true;
       clearInterval(ev.nag); clearTimeout(ev.giveUp);
       const key = chosen && PRINTS[chosen] ? chosen : ev.saved;
       const cur = getComputedStyle(ev.el).transform;
       if (ev.drift) ev.drift.cancel();
       ev.el.getAnimations().forEach(a => a.cancel());
-      const to = pt(200, 362);
+      if (!x.svg) { ev.el.remove(); return; }
+      const to = pt(x, 200, 362);
       ev.el.animate([{ transform: cur === "none" ? tf(to.x, to.y) : cur }, { transform: tf(to.x, to.y, 0, 1) }], { duration: reduce ? 1 : 700, easing: "ease-in", fill: "forwards" })
         .finished.catch(() => {}).then(() => {
           ev.el.remove();
           if (event !== ev) return;
           event = null;
-          face.pants = key; render("pants"); restart(pkg(), "squish"); boing("pants"); tada(); sparkles(8);
-          say(byThemselves ? "Oh! There they are!" : "Phew! My pants!", "happy");
+          x.face.pants = key; render(x, "pants"); restart(x.pkg, "squish"); boing("pants"); tada(); sparkles(x, 8);
+          say(x, byThemselves ? "Oh! There they are!" : "Phew! My pants!", "happy");
           share(); scheduleEvent();
         });
     }
 
     // ----- gag 2: the bat pinches the hat -----
-    async function hatSteal() {
-      const saved = face.hat; if (!saved) return;
+    async function hatSteal(x) {
+      const saved = x.face.hat; if (!saved || !x.svg) return;
       const keys = Object.keys(SPOTS), spot = keys[Math.floor(Math.random() * keys.length)];
-      const ev = event = { type: "hat", saved, spot, tried: new Set(), busy: true };
-      const k = scale(), W = innerWidth, H = innerHeight;
+      const ev = event = { p: x.i, type: "hat", saved, spot, tried: new Set(), busy: true };
+      const k = scale(x), W = innerWidth, H = innerHeight;
       const el = makeFlyer(`<svg class="pk" viewBox="${BAT_VIEW}" style="width:${120 * k}px">${BAT}</svg><svg class="pk carried" viewBox="${SLOT.hat.view}" style="width:${230 * k}px;margin-top:${-30 * k}px" hidden>${SLOT.hat.options[saved].svg}</svg>`);
       ev.el = el;
-      const hat = pt(200, 40);
+      const hat = pt(x, 200, 40);
       squeak();
       await fly(el, [[-W * .1, H * .15, -10], [hat.x, hat.y - 30 * k, 0]], 1400);
       if (event !== ev) { el.remove(); return; }
-      face.hat = null; render(); el.querySelector(".carried").hidden = false; squeak();
-      say("Hey! I want my hat back!", "grump", 3600);
+      x.face.hat = null; render(x); el.querySelector(".carried").hidden = false; squeak();
+      say(x, "Hey! I want my hat back!", "grump", 3600);
+      share();
       const to = centre($("prop-" + spot));
       await fly(el, [[hat.x, hat.y - 30 * k, 0], [(hat.x + to.x) / 2, H * .12, 10], [to.x, to.y - 20 * k, 0]], 1700);
       if (event !== ev) { el.remove(); return; }
@@ -571,36 +703,39 @@ body.on-pad .moon { display: none; }
       el.remove();
       if (event !== ev) return;
       ev.busy = false; ev.el = null;
-      ev.nag = setInterval(() => say("I want my hat back!", "grump", 3000), 11000);
+      ev.nag = setInterval(() => say(x, "I want my hat back!", "grump", 3000), 11000);
       ev.giveUp = setTimeout(() => foundHat(true), 70000);
       share();
     }
-    function guess(spot) {
+    function guess(p, spot) {
       if (!event || event.type !== "hat" || event.busy || !SPOTS[spot]) return;
+      if (p !== null && p !== event.p) return;
+      const x = P[event.p];
       const prop = $("prop-" + spot); restart(prop, "rummage"); rustle();
       if (spot === event.spot) { foundHat(false); return; }
       if (event.tried.has(spot)) return;
       event.tried.add(spot);
       const item = SILLY[Math.floor(Math.random() * SILLY.length)];
-      const c = centre(prop), k = scale();
+      const c = centre(prop), k = x.svg ? Math.max(.6, scale(x)) : 1;
       const el = makeFlyer(`<svg viewBox="${item.view}" style="width:${110 * k}px">${item.svg}</svg>`);
       fly(el, [[c.x, c.y, 0, .3], [c.x, c.y - 120 * k, -8, 1.1], [c.x, c.y - 110 * k, 6, 1]], 600, "cubic-bezier(.3,1.5,.5,1)")
         .then(() => setTimeout(() => el.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 400, fill: "forwards" }).finished.then(() => el.remove()), 1500));
-      boing("nose"); setTimeout(() => say(item.line, "grump", 3000), 300);
+      boing("nose"); setTimeout(() => say(x, item.line, "grump", 3000), 300);
       share();
     }
     async function foundHat(byThemselves) {
       if (!event || event.type !== "hat" || event.busy) return;
-      const ev = event; ev.busy = true; clearInterval(ev.nag); clearTimeout(ev.giveUp);
-      const c = centre($("prop-" + ev.spot)), k = scale(), hat = pt(200, 60);
+      const ev = event, x = P[ev.p]; ev.busy = true; clearInterval(ev.nag); clearTimeout(ev.giveUp);
+      if (!x.svg) { event = null; return; }
+      const c = centre($("prop-" + ev.spot)), k = scale(x), hat = pt(x, 200, 60);
       const el = makeFlyer(`<svg class="pk" viewBox="${SLOT.hat.view}" style="width:${230 * k}px">${SLOT.hat.options[ev.saved].svg}</svg>`);
       tone("triangle", 400, 900, .4, .2);
       await fly(el, [[c.x, c.y, 0, .4], [c.x, c.y - 160 * k, -15, 1], [hat.x, hat.y, 0, 1]], 1300);
       el.remove();
       if (event !== ev) return;
       event = null;
-      face.hat = ev.saved; render("hat"); restart(pkg(), "squish"); boing("hat"); tada(); sparkles(10);
-      say(byThemselves ? "Oh! There's my hat!" : "My hat! Thank you!", "happy");
+      x.face.hat = ev.saved; render(x, "hat"); restart(x.pkg, "squish"); boing("hat"); tada(); sparkles(x, 10);
+      say(x, byThemselves ? "Oh! There's my hat!" : "My hat! Thank you!", "happy");
       share(); scheduleEvent();
     }
     function endHatHunt() {
@@ -613,46 +748,51 @@ body.on-pad .moon { display: none; }
       if (event.drift) event.drift.cancel();
       if (event.el) event.el.remove();
       event = null; $("speech").hidden = true;
+      scheduleEvent(); share();
     }
     function scheduleEvent() { nextEventAt = performance.now() + 30000 + Math.random() * 30000; }
     setInterval(() => {
-      if (!started || event || busy || queue.length || performance.now() < nextEventAt) return;
-      const options = [];
-      if (face.pants) options.push(pantsBlowOff);
-      if (face.hat) options.push(hatSteal);
-      if (!options.length) { nextEventAt = performance.now() + 8000; return; }
-      options[Math.floor(Math.random() * options.length)]();
+      if (!started || event || performance.now() < nextEventAt) return;
+      const ready = visible().filter(x => x.slot && !x.busy && !x.queue.length && (x.face.pants || x.face.hat));
+      if (!ready.length) { nextEventAt = performance.now() + 8000; return; }
+      const x = ready[Math.floor(Math.random() * ready.length)];
+      const gags = [];
+      if (x.face.pants) gags.push(pantsBlowOff);
+      if (x.face.hat) gags.push(hatSteal);
+      gags[Math.floor(Math.random() * gags.length)](x);
     }, 1000);
 
-    function handleAct(a) {
-      if (!a || typeof a !== "object") return;
-      if (a.a === "pick" && validPick(String(a.s), String(a.v))) enqueue({ type: "pick", s: String(a.s), v: String(a.v) });
-      else if (a.a === "light") enqueue({ type: "light" });
-      else if (a.a === "new") enqueue({ type: "new" });
-      else if (a.a === "pants") pantsBack();
-      else if (a.a === "guess") guess(String(a.spot));
+    function handleAct(p, a) {
+      const x = P[p]; if (!x || !a || typeof a !== "object") return;
+      if (a.a === "pick" && validPick(String(a.s), String(a.v))) enqueue(x, { type: "pick", s: String(a.s), v: String(a.v) });
+      else if (a.a === "light") enqueue(x, { type: "light" });
+      else if (a.a === "new") enqueue(x, { type: "new" });
+      else if (a.a === "pants") pantsBack(p);
+      else if (a.a === "guess") guess(p, String(a.spot));
     }
 
-    // local play
-    svg.addEventListener("pointerdown", () => { if (started) { const p = randomPicks(); enqueue({ type: "pick", ...p[1 + Math.floor(Math.random() * (p.length - 1))] }); } });
-    for (const k of Object.keys(SPOTS)) $("prop-" + k).addEventListener("click", () => { if (started) guess(k); });
+    // local play (no phones)
+    for (const k of Object.keys(SPOTS)) $("prop-" + k).addEventListener("click", () => { if (started) guess(null, k); });
     window.addEventListener("keydown", (e) => {
       if (!started) return;
       const key = e.key.toLowerCase();
-      if (key === "l" || key === " ") enqueue({ type: "light" });
-      else if (key === "n") enqueue({ type: "new" });
-      else if (key === "r") randomPicks().forEach(p => enqueue({ type: "pick", ...p }));
-      else if (key === "p") pantsBack();
-      else if (["1", "2", "3"].includes(key)) guess(Object.keys(SPOTS)[Number(key) - 1]);
+      if (["1", "2", "3", "4"].includes(key)) { const x = P[Number(key) - 1]; x.local = true; layout(); randomOne(x); }
+      else if (key === "l" || key === " ") visible().forEach(x => enqueue(x, { type: "light" }));
+      else if (key === "n") visible().forEach(x => enqueue(x, { type: "new" }));
+      else if (key === "r") visible().forEach(x => randomPicks().forEach(p => enqueue(x, { type: "pick", ...p })));
+      else if (key === "p") pantsBack(null);
+      else if (key === "c") guess(null, "cloud");
+      else if (key === "b") guess(null, "bush");
+      else if (key === "t") guess(null, "tree");
     });
     $("startBtn").onclick = async () => {
       audio(); $("start").hidden = true; boing("colour");
       started = true; scheduleEvent();
-      setTimeout(() => say("Let's decorate me!", "happy"), 300);
+      setTimeout(() => say(visible()[0], "Let's get decorating!", "happy"), 300);
       try { if (navigator.wakeLock) await navigator.wakeLock.request("screen"); } catch (e) {}
       try { if (document.documentElement.requestFullscreen) await document.documentElement.requestFullscreen(); } catch (e) {}
     };
-    share();
+    layout(); share();
   }
 
   // =====================================================================
@@ -662,13 +802,38 @@ body.on-pad .moon { display: none; }
     if (!code) { Net.askCode((c) => startPad(c)); return; }
     $("pad").hidden = false; document.body.classList.add("on-pad");
     $("homePk").innerHTML = "";
-    let tab = "eyes", mode = null, modeKey = "";
+    let me = -1, tab = "eyes", modeKey = "", last = null;
     let face = blankFace();
+    try { const s = Number(localStorage.getItem("pumpkin-player")); if (localStorage.getItem("pumpkin-player") !== null && okPlayer(s)) me = s; } catch (e) {}
     const link = connectPad(code, { onState });
-
-    const act = (a) => link.act(a);
+    const act = (a) => { if (me >= 0) link.act({ ...a, p: me }); };
     function pick(s, v) { face[s] = v === "off" ? null : v; act({ a: "pick", s, v }); }
 
+    // character picker
+    PLAYERS.forEach((pl, i) => {
+      const b = document.createElement("button");
+      b.className = "pick"; b.id = "who-" + i; b.style.setProperty("--c", pl.color);
+      b.innerHTML = `${pl.face}<span>${pl.name}</span>`;
+      b.onclick = () => { audio(); boing("colour", .25); choose(i); };
+      $("whogrid").appendChild(b);
+    });
+    function choose(i) {
+      me = i;
+      try { localStorage.setItem("pumpkin-player", String(i)); } catch (e) {}
+      link.setMe(i);
+      const pl = PLAYERS[i];
+      $("meBtn").innerHTML = `<span>${pl.face}</span>${pl.name}`; $("meBtn").style.setProperty("--c", pl.color); $("meBtn").hidden = false;
+      $("who").hidden = true; $("deco").hidden = false; $("newBtn").hidden = false;
+      face = last && Array.isArray(last.faces) ? cleanFace(last.faces[i]) : blankFace();
+      modeKey = "~"; render(); applyState();
+    }
+    function showWho() {
+      $("who").hidden = false; $("deco").hidden = true; $("newBtn").hidden = true; $("meBtn").hidden = true;
+      $("eventPanel").hidden = true; modeKey = "~";
+    }
+    $("meBtn").onclick = () => { audio(); showWho(); };
+
+    // decorating tabs
     for (const s of SLOTS) {
       const b = document.createElement("button");
       b.className = "tab"; b.id = "tab-" + s.id; b.textContent = s.icon; b.setAttribute("aria-label", s.label); b.setAttribute("role", "tab");
@@ -696,9 +861,9 @@ body.on-pad .moon { display: none; }
         box.appendChild(b);
       }
     }
-    render();
 
-    function renderEvent() {
+    // rescue screens for my pumpkin
+    function renderEvent(mode) {
       const panel = $("eventPanel"), bodyEl = $("eventBody");
       const key = JSON.stringify(mode);
       if (key === modeKey) return; modeKey = key;
@@ -709,25 +874,25 @@ body.on-pad .moon { display: none; }
         const k = PRINTS[mode.saved] ? mode.saved : "stripy";
         bodyEl.innerHTML = `<button class="bigpants" id="pantsBack"><svg class="pk" viewBox="${PANTS_VIEW}" aria-hidden="true">${pantsSvg(k)}</svg>Put them back on!</button>`;
         $("pantsBack").onclick = () => { audio(); boing("pants", .25); act({ a: "pants" }); };
-      } else if (mode.type === "hat") {
+      } else {
         $("eventTitle").textContent = "Where's the hat?";
-        const tried = new Set(Array.isArray(mode.tried) ? mode.tried : []);
+        const tried = new Set(mode.tried);
         bodyEl.innerHTML = `<div class="spots">${Object.entries(SPOTS).map(([k, s]) =>
           `<button class="spotbtn${tried.has(k) ? " tried" : ""}" id="spot-${k}"><svg viewBox="${s.view}" aria-hidden="true">${s.svg}</svg><span>${s.name}</span></button>`).join("")}</div>`;
         for (const k of Object.keys(SPOTS)) $("spot-" + k).onclick = () => { audio(); boing("nose", .2); act({ a: "guess", spot: k }); };
       }
     }
-    function onState(st) {
-      if (!st || typeof st !== "object") return;
-      if (st.face && typeof st.face === "object") {
-        const nf = blankFace();
-        for (const k of Object.keys(nf)) if (typeof st.face[k] === "string" || st.face[k] === null) nf[k] = st.face[k];
+    function applyState() {
+      if (me < 0 || !$("who").hidden || !last) return;
+      if (Array.isArray(last.faces)) {
+        const nf = cleanFace(last.faces[me]);
         if (JSON.stringify(nf) !== JSON.stringify(face)) { face = nf; render(); }
       }
-      const m = st.mode;
-      mode = m && typeof m === "object" && (m.type === "pants" || m.type === "hat") ? { type: m.type, saved: String(m.saved || ""), tried: Array.isArray(m.tried) ? m.tried.map(String) : [] } : null;
-      renderEvent();
+      const m = last.mode;
+      const mine = m && typeof m === "object" && Number(m.p) === me && (m.type === "pants" || m.type === "hat");
+      renderEvent(mine ? { type: m.type, saved: String(m.saved || ""), tried: Array.isArray(m.tried) ? m.tried.map(String) : [] } : null);
     }
+    function onState(st) { if (!st || typeof st !== "object") return; last = st; applyState(); }
 
     $("surpriseBtn").onclick = () => {
       audio(); tone("square", 300, 900, .3, .08);
@@ -736,31 +901,45 @@ body.on-pad .moon { display: none; }
     };
     $("lightBtn").onclick = () => { audio(); act({ a: "light" }); tone("triangle", 523, 1047, .3, .15); };
     $("newBtn").onclick = () => { audio(); face = blankFace(); act({ a: "new" }); render(); };
+
+    if (me >= 0) choose(me); else showWho();
   }
 
   // ---------- connection START ----------
-  function connectScreen({ onAct }) {
-    let net = null, last = null, pads = 0;
+  function connectScreen({ onAct, onPlayers }) {
+    let net = null, last = null;
+    const who = new Map();
+    const update = () => { Net.setCount(who.size); onPlayers(new Set([...who.values()].filter(okPlayer))); };
     $("hint").textContent = "Getting ready for phones…";
     net = Net.host("pumpkin", {
       onReady: (code) => { Net.joinCard(code); $("hint").hidden = true; },
-      onJoin: (c) => { pads++; Net.setCount(pads); if (last) net.send(c, last); },
-      onLeave: () => { pads = Math.max(0, pads - 1); Net.setCount(pads); },
-      onMessage: (m) => { if (m.t === "act") onAct(m); },
+      onJoin: (c) => { who.set(c, -1); update(); if (last) net.send(c, last); },
+      onLeave: (c) => { who.delete(c); update(); },
+      onMessage: (m, c) => {
+        const p = Number(m.p); if (!okPlayer(p)) return;
+        if (who.get(c) !== p) { who.set(c, p); update(); }
+        if (m.t === "act") onAct(p, m);
+      },
       onProblem: () => { $("hint").hidden = false; $("hint").textContent = "Phones can't connect right now. Check the internet connection and reload."; },
     });
     return { share(state) { last = { t: "state", ...state }; if (net) net.broadcast(last); } };
   }
   function connectPad(code, { onState }) {
-    const link = Net.join("pumpkin", code, {
+    let me = -1, link = null;
+    link = Net.join("pumpkin", code, {
       onStatus: (s) => {
         const ok = s === "open";
         $("dot").classList.toggle("ok", ok);
-        $("statusText").textContent = ok ? "Connected to the big screen" : s === "notfound" ? `Looking for game ${code}… Is the TV page open?` : "Connecting to the big screen…";
+        $("statusText").textContent = ok ? "Connected" : s === "notfound" ? `Looking for game ${code}…` : "Connecting to the TV…";
+        if (ok && me >= 0) link.send({ t: "hello", p: me });
       },
       onMessage: (m) => { if (m.t === "state") onState(m); },
     });
-    return { act(a) { link.send({ t: "act", ...a }); } };
+    Net.padMenuButton(link);
+    return {
+      act(a) { link.send({ t: "act", ...a }); },
+      setMe(p) { me = p; link.send({ t: "hello", p }); },
+    };
   }
   // ---------- connection END ----------
 })();

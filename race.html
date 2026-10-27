@@ -1,0 +1,573 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<style>[hidden]{display:none!important}body{margin:0}</style>
+<title>Spooky Derby</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&family=Griffy&display=swap">
+<style>
+/* Layout: a carnival race on the TV, one lane per player with a checkered finish; each phone is one giant hop button. */
+:root {
+  --night: #1b0f33;
+  --dusk: #3a1d63;
+  --glow: #6b3fa0;
+  --moon: #fff3b8;
+  --candy: #ff8a1f;
+  --slime: #9cf26b;
+  --ink: #1b0f33;
+  --text: #fff6e6;
+  --glass: rgba(255, 246, 230, 0.12);
+  --glass-line: rgba(255, 246, 230, 0.32);
+  --display: "Griffy", "Baloo 2", "Comic Sans MS", cursive;
+  --body: "Baloo 2", "Arial Rounded MT Bold", "Trebuchet MS", system-ui, sans-serif;
+  color-scheme: dark;
+}
+html, body { height: 100%; }
+body {
+  background: var(--night); color: var(--text); font-family: var(--body);
+  overflow: hidden; -webkit-user-select: none; user-select: none;
+  -webkit-tap-highlight-color: transparent; touch-action: manipulation;
+}
+.sky { position: fixed; inset: 0; z-index: 0;
+  background:
+    radial-gradient(70% 30% at 50% 108%, #2c5a1e 0 60%, transparent 61%),
+    linear-gradient(180deg, var(--night) 0%, var(--dusk) 60%, var(--glow) 100%); }
+.moon {
+  position: fixed; z-index: 0; top: calc(6vh + env(safe-area-inset-top, 0px)); right: max(6vw, env(safe-area-inset-right, 0px));
+  width: min(18vmin, 180px); aspect-ratio: 1; max-width: 100%; border-radius: 50%;
+  background: radial-gradient(circle at 38% 35%, #fffbe0, var(--moon) 55%, #f3d97a);
+  box-shadow: 0 0 60px 20px rgba(255, 243, 184, 0.22);
+}
+.moon::before, .moon::after { content: ""; position: absolute; top: 38%; width: 10%; height: 14%; border-radius: 50%; background: #6b5a2a; }
+.moon::before { left: 32%; } .moon::after { right: 32%; }
+.moon i { position: absolute; left: 30%; right: 30%; top: 56%; height: 16%; border-bottom: .5vmin solid #6b5a2a; border-radius: 0 0 50% 50%; }
+body.on-pad .moon, body.on-screen .moon { display: none; }
+.view {
+  position: fixed; inset: 0; z-index: 1;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: calc(14px + env(safe-area-inset-top, 0px)) calc(14px + env(safe-area-inset-bottom, 0px));
+}
+button { font-family: var(--body); color: inherit; cursor: pointer; }
+button:focus-visible { outline: 4px solid var(--moon); outline-offset: 3px; }
+
+/* ---------- Home ---------- */
+.home { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1.4rem; text-align: center; }
+.home h1 { margin: 0; font-family: var(--display); font-weight: 400; font-size: clamp(2.8rem, 11vw, 7rem); line-height: .95; color: var(--candy); text-wrap: balance; text-shadow: 0 6px 0 rgba(0,0,0,.35); }
+.home h1 span { display: block; color: var(--slime); font-size: .5em; }
+.home p { margin: 0; max-width: 34ch; font-size: 1.15rem; opacity: .9; }
+.cast { font-size: clamp(2.2rem, 8vw, 3.6rem); display: flex; gap: .6rem; }
+.cast span { display: inline-block; animation: hop .7s ease-in-out infinite; }
+.cast span:nth-child(2) { animation-delay: .15s; } .cast span:nth-child(3) { animation-delay: .3s; } .cast span:nth-child(4) { animation-delay: .45s; }
+@keyframes hop { 0%, 100% { transform: translateY(0); } 40% { transform: translateY(-16px) rotate(-6deg); } }
+.choices { display: flex; flex-wrap: wrap; gap: 1rem; justify-content: center; width: 100%; max-width: 640px; }
+.choice {
+  flex: 1 1 240px; min-height: 130px; border-radius: 28px; border: 2px solid var(--glass-line);
+  background: var(--glass); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .2rem;
+  font-size: 1.6rem; font-weight: 800; transition: transform .12s;
+}
+.choice small { font-size: 1rem; font-weight: 500; opacity: .8; }
+.choice .big { font-size: 2.8rem; line-height: 1; }
+.choice:active { transform: scale(.96); }
+
+/* ---------- Big screen ---------- */
+.screen { display: flex; flex-direction: column; pointer-events: none; gap: 1vh; }
+.topbar { width: 100%; box-sizing: border-box; display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; flex-wrap: wrap; padding-right: min(22vmin, 200px); }
+.brand { font-family: var(--display); font-size: clamp(1.6rem, 3.4vw, 2.8rem); color: var(--candy); }
+.hint { font-size: clamp(.9rem, 1.6vw, 1.2rem); background: var(--glass); border: 1px solid var(--glass-line); border-radius: 999px; padding: .4rem 1rem; max-width: 100%; }
+.bunting { display: flex; justify-content: space-around; align-items: flex-start; height: 6vh; border-top: 3px solid rgba(255, 246, 230, .5); margin-left: 2vw; margin-right: min(30vw, 400px); font-size: 4vh; line-height: 1; }
+.bunting span { transform-origin: 50% 0; animation: flutter 1.6s ease-in-out infinite; }
+.bunting span:nth-child(even) { animation-delay: -.8s; }
+.bunting .flag { width: 0; height: 0; border-left: 1.6vh solid transparent; border-right: 1.6vh solid transparent; border-top: 3.4vh solid var(--f); }
+@keyframes flutter { 0%, 100% { transform: rotate(-5deg); } 50% { transform: rotate(5deg); } }
+.track { flex: 1; min-height: 0; display: flex; flex-direction: column; justify-content: center; gap: 1.2vh; padding-bottom: 2vh; }
+.lane { position: relative; flex: 0 1 17vh; min-height: 0; border-radius: 2.4vh; overflow: hidden;
+  background: linear-gradient(90deg, rgba(0,0,0,.28), rgba(0,0,0,.12)), repeating-linear-gradient(90deg, transparent 0 7vw, rgba(255,246,230,.06) 7vw 7.4vw);
+  border: .4vh solid color-mix(in srgb, var(--c) 70%, transparent); }
+.lane .badge { position: absolute; left: 1vw; top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; align-items: center;
+  font-weight: 800; font-size: clamp(.9rem, 1.9vw, 1.7rem); color: var(--c); text-shadow: 0 2px 0 rgba(0,0,0,.5); width: 9vw; text-align: center; line-height: 1.05; }
+.lane .badge .place { font-size: 1.6em; line-height: 1; }
+.lane .finish { position: absolute; top: 0; bottom: 0; right: 4vw; width: 2.6vw;
+  background: repeating-conic-gradient(#fff6e6 0 25%, #1b0f33 0 50%) 0 0 / 1.3vw 1.3vw; opacity: .85; }
+.lane .run { position: absolute; top: 0; bottom: 0; left: 15vw; right: 5.3vw; }
+.runner { position: absolute; inset: 0; transform: translateX(calc(var(--pos, 0) * 100%)); transition: transform .28s cubic-bezier(.3, 1.3, .6, 1); }
+.lane.snail .runner { transition: transform .5s linear; }
+.runner .body { position: absolute; left: 0; top: 50%; font-size: 11vh; line-height: 1; transform: translate(-50%, -55%); filter: drop-shadow(0 .6vh 0 rgba(0,0,0,.35)); }
+.runner .body.hop { animation: bodyhop .28s ease-out; }
+@keyframes bodyhop { 0% { transform: translate(-50%, -55%); } 45% { transform: translate(-50%, -95%) rotate(-10deg); } 100% { transform: translate(-50%, -55%); } }
+.lane.done .body { animation: party .5s ease-in-out infinite; }
+@keyframes party { 0%, 100% { transform: translate(-50%, -55%) rotate(-8deg); } 50% { transform: translate(-50%, -75%) rotate(8deg); } }
+.lobby-msg { position: fixed; z-index: 3; left: 50%; bottom: calc(3vh + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); max-width: 92vw;
+  background: rgba(27, 15, 51, .8); border: 2px solid var(--glass-line); border-radius: 999px; padding: .4rem 1.4rem; text-align: center;
+  font-size: clamp(1.1rem, 2.4vw, 2rem); font-weight: 800; pointer-events: none; }
+.countdown { position: fixed; inset: 0; z-index: 6; display: flex; align-items: center; justify-content: center; pointer-events: none;
+  font-family: var(--display); font-size: clamp(6rem, 28vmin, 18rem); color: var(--slime); text-shadow: 0 10px 0 rgba(0,0,0,.35); }
+.countdown.go { color: var(--candy); }
+.countdown span { animation: zoom .8s ease-out forwards; }
+@keyframes zoom { from { transform: scale(.3); opacity: 0; } 30% { transform: scale(1.1); opacity: 1; } to { transform: scale(1); opacity: 1; } }
+.prizes { position: fixed; inset: 0; z-index: 5; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3vh;
+  background: rgba(27, 15, 51, .82); pointer-events: none; padding-inline: 4vw; }
+.prizes h2 { margin: 0; font-family: var(--display); font-weight: 400; font-size: clamp(2.4rem, 7vw, 6rem); color: var(--candy); text-shadow: 0 6px 0 rgba(0,0,0,.4); text-align: center; }
+.prize-row { display: flex; gap: 2vw; justify-content: center; flex-wrap: wrap; }
+.prize { display: flex; flex-direction: column; align-items: center; gap: .6vh; padding: 2vh 2vw; border-radius: 3vh; background: var(--glass); border: .5vh solid var(--c);
+  min-width: 14vw; animation: popin .5s cubic-bezier(.3, 1.6, .5, 1) backwards; }
+.prize .who { font-size: 12vh; line-height: 1.15; width: 1.3em; text-align: center; animation: party2 .6s ease-in-out infinite; }
+.prize .gift { font-size: 7vh; line-height: 1; }
+.prize .what { font-weight: 800; font-size: clamp(1rem, 2.2vw, 2rem); text-align: center; }
+@keyframes popin { from { transform: scale(.3) translateY(10vh); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes party2 { 0%, 100% { transform: rotate(-8deg); } 50% { transform: translateY(-1.5vh) rotate(8deg); } }
+.spark { position: fixed; z-index: 4; pointer-events: none; font-size: clamp(1.6rem, 4vmin, 3rem); animation: spark 1.4s ease-out forwards; }
+@keyframes spark { from { transform: translate(0, 0) scale(.3); opacity: 0; } 20% { opacity: 1; } to { transform: translate(var(--dx), var(--dy)) scale(1.1) rotate(40deg); opacity: 0; } }
+.start { position: fixed; inset: 0; z-index: 7; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1.2rem;
+  background: rgba(27, 15, 51, .6); text-align: center; pointer-events: auto; padding-inline: 16px; }
+.start button { font-size: clamp(2rem, 5vw, 3.5rem); font-weight: 800; padding: .5rem 2.4rem; border-radius: 999px; border: 0; background: var(--candy); color: var(--ink); box-shadow: 0 8px 0 rgba(0,0,0,.4); }
+.start p { margin: 0; font-size: clamp(1rem, 2vw, 1.4rem); max-width: 46ch; }
+
+/* ---------- Controller ---------- */
+.pad { display: flex; flex-direction: column; align-items: center; gap: 1rem; height: 100dvh; box-sizing: border-box; }
+.pad-top { width: 100%; display: flex; justify-content: space-between; align-items: center; gap: .6rem; }
+.status { font-size: .95rem; display: flex; align-items: center; gap: .45rem; min-width: 0; flex: 1; }
+.dot { width: 12px; height: 12px; border-radius: 50%; background: var(--candy); flex: none; }
+.dot.ok { background: var(--slime); }
+.small-btn { background: var(--glass); border: 1px solid var(--glass-line); border-radius: 999px; padding: .4rem 1rem; font-size: .95rem; font-weight: 700; flex: none; }
+.who { flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 1rem; width: 100%; }
+.who h2 { margin: 0; text-align: center; font-family: var(--display); font-weight: 400; font-size: 2.2rem; color: var(--candy); }
+.whogrid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; width: min(520px, 100%, calc(100dvh - 12rem)); margin-inline: auto; }
+.pick { aspect-ratio: 1; max-width: 100%; border-radius: 32px; border: 0; background: var(--c);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 4.2rem; line-height: 1; box-shadow: inset 0 -10px 0 rgba(0,0,0,.2); }
+.pick span { font-size: 1.3rem; font-weight: 800; color: var(--ink); margin-top: .3rem; }
+.play { flex: 1; min-height: 0; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1rem; text-align: center; }
+.pad-title { margin: 0; font-family: var(--display); font-weight: 400; font-size: clamp(2rem, 9vw, 3.2rem); line-height: 1.05; color: var(--candy); text-wrap: balance; }
+.bigbtn {
+  position: relative; width: min(80vw, 56dvh); aspect-ratio: 1; max-width: 100%; border-radius: 50%; border: 0;
+  background: radial-gradient(circle at 35% 30%, rgba(255,255,255,.55), transparent 32%), var(--c);
+  box-shadow: inset 0 -18px 0 rgba(0,0,0,.2), 0 14px 0 rgba(0,0,0,.4);
+  font-size: min(34vw, 24dvh); line-height: 1; display: flex; align-items: center; justify-content: center;
+  transition: transform .08s, opacity .2s; touch-action: none;
+}
+.bigbtn.press { transform: scale(.92) translateY(6px); box-shadow: inset 0 -8px 0 rgba(0,0,0,.2), 0 6px 0 rgba(0,0,0,.4); }
+.bigbtn.wait { opacity: .45; }
+.bigbtn.go { animation: nudge 1s ease-in-out infinite; }
+@keyframes nudge { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
+.btn-label { font-size: clamp(1.3rem, 6vw, 2rem); font-weight: 800; }
+.ripple { position: absolute; inset: 0; border-radius: 50%; border: 6px solid var(--text); animation: ripple .5s ease-out forwards; pointer-events: none; }
+@keyframes ripple { from { transform: scale(.9); opacity: .9; } to { transform: scale(1.35); opacity: 0; } }
+@media (orientation: landscape) {
+  .whogrid { grid-template-columns: repeat(4, minmax(0, 1fr)); width: min(900px, 100%, calc((100dvh - 10rem) * 4 + 3rem)); }
+  .play { flex-direction: row; gap: 4vw; }
+  .play .words { display: flex; flex-direction: column; gap: 1rem; max-width: 40vw; }
+  .bigbtn { width: min(60vw, 70dvh); font-size: min(28vw, 30dvh); }
+}
+@media (orientation: landscape) and (max-height: 500px) {
+  .pick { font-size: 2.6rem; border-radius: 22px; }
+  .pick span { font-size: 1rem; }
+  .who h2 { font-size: 1.5rem; }
+  .pad-title { font-size: 1.7rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cast span, .bunting span, .lane.done .body, .prize .who, .bigbtn.go { animation: none !important; }
+  .runner .body.hop, .countdown span, .prize, .spark, .ripple { animation-duration: .01s; }
+  .runner { transition: none; }
+}
+</style>
+</head>
+<body>
+
+<div class="sky"></div>
+<div class="moon" aria-hidden="true"><i></i></div>
+
+<section class="view home" id="home">
+  <div class="cast" aria-hidden="true"><span>🎃</span><span>👻</span><span>🦇</span><span>🦉</span></div>
+  <h1>Spooky<span>Derby</span></h1>
+  <p>Open this page on the TV and tap Big screen. Then scan the QR code on the TV with each phone.</p>
+  <div class="choices">
+    <button class="choice" id="goScreen"><span class="big">📺</span>Big screen<small>The TV or laptop</small></button>
+    <button class="choice" id="goPad"><span class="big">📱</span>Controller<small>One per racer</small></button>
+  </div>
+</section>
+
+<section class="view screen" id="screen" hidden>
+  <div class="topbar">
+    <div class="brand">Spooky Derby</div>
+    <div class="hint" id="hint">Open this link on a phone and tap Controller</div>
+  </div>
+  <div class="bunting" id="bunting" aria-hidden="true"></div>
+  <div class="track" id="track"></div>
+</section>
+<div class="lobby-msg" id="lobbyMsg" hidden></div>
+<div class="countdown" id="countdown" hidden></div>
+<div class="prizes" id="prizes" hidden>
+  <h2>Everyone wins a prize!</h2>
+  <div class="prize-row" id="prizeRow"></div>
+</div>
+<div class="start" id="start" hidden>
+  <button id="startBtn">Start!</button>
+  <p>Starting turns the sound on. Without phones: press 1–4 to hop a racer, and Space to start a race.</p>
+</div>
+
+<section class="view pad" id="pad" hidden>
+  <div class="pad-top">
+    <div class="status"><span class="dot" id="dot"></span><span id="statusText">Looking for the TV…</span></div>
+    <button class="small-btn" id="swap" hidden>Change</button>
+  </div>
+  <div class="who" id="who">
+    <h2>Who are you?</h2>
+    <div class="whogrid" id="whogrid"></div>
+  </div>
+  <div class="play" id="play" hidden>
+    <div class="words">
+      <h2 class="pad-title" id="padTitle">Ready to race?</h2>
+      <div class="btn-label" id="btnLabel">Tap to start!</div>
+    </div>
+    <button class="bigbtn" id="bigbtn" aria-label="Hop"></button>
+  </div>
+</section>
+
+<script src="peerjs.min.js"></script>
+<script src="qrcode.js"></script>
+<script src="net.js"></script>
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+
+  const PLAYERS = [
+    { name: "Pumpkin", face: "🎃", color: "#ff8a1f" },
+    { name: "Ghost",   face: "👻", color: "#c9ecff" },
+    { name: "Bat",     face: "🦇", color: "#b97bff" },
+    { name: "Owl",     face: "🦉", color: "#9cf26b" },
+  ];
+  const SNAIL = { name: "Snail", face: "🐌", color: "#ffd23f" };
+  const PRIZES = [
+    { icon: "🏆", text: "First!" },
+    { icon: "🍭", text: "Super speedy!" },
+    { icon: "🧁", text: "Brilliant bouncing!" },
+    { icon: "🍬", text: "Fantastic racing!" },
+    { icon: "🍪", text: "What a racer!" },
+  ];
+  const NEARLY = { icon: "🍩", text: "Nearly there!" };
+  const okPlayer = (p) => Number.isInteger(p) && p >= 0 && p < PLAYERS.length;
+  const prizeFor = (place) => place > 0 ? PRIZES[Math.min(place - 1, PRIZES.length - 1)] : NEARLY;
+
+  // ---------- Audio and voice ----------
+  let ac = null;
+  function audio() {
+    if (!ac) { try { ac = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { ac = null; } }
+    if (ac && ac.state === "suspended") ac.resume().catch(() => {});
+    return ac;
+  }
+  function tone(type, f0, f1, dur, vol, delay = 0) {
+    const a = ac; if (!a) return;
+    const t = a.currentTime + delay;
+    const o = a.createOscillator(), g = a.createGain();
+    o.type = type; o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(f1, t + dur);
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + 0.015); g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+    o.connect(g).connect(a.destination); o.start(t); o.stop(t + dur + .05);
+  }
+  const PITCH = [1, 1.25, 1.5, 0.85];
+  const boing = (p, vol = .22) => { const m = PITCH[p] || 1; tone("sine", 220 * m, 640 * m, .12, vol); };
+  const fanfare = () => [523, 659, 784, 1047].forEach((f, i) => tone("triangle", f, f, i === 3 ? .6 : .16, .22, i * .1));
+  const beep = (hi) => tone("square", hi ? 880 : 440, hi ? 880 : 440, hi ? .35 : .15, .12);
+  function speak(text, pitch = 1.4) {
+    try {
+      const s = window.speechSynthesis; if (!s) return;
+      s.cancel();
+      const u = new SpeechSynthesisUtterance(text); u.pitch = pitch; u.rate = 1.08; u.lang = "en-GB";
+      s.speak(u);
+    } catch (e) {}
+  }
+
+  // ---------- Home ----------
+  $("goScreen").onclick = () => { $("home").hidden = true; startScreen(); };
+  $("goPad").onclick = () => { $("home").hidden = true; startPad(Net.codeFromUrl()); };
+  if (Net.codeFromUrl()) { $("home").hidden = true; startPad(Net.codeFromUrl()); }
+  else if (Net.tvFromUrl()) { $("home").hidden = true; startScreen(); }
+
+  // =====================================================================
+  // BIG SCREEN
+  // =====================================================================
+  function startScreen() {
+    document.body.classList.add("on-screen");
+    Net.tvMenuButton();
+    $("screen").hidden = false; $("start").hidden = false;
+    const BASE = 1 / 26;           // a hop when you're in the lead
+    const MIN_GAP_MS = 230;        // tapping faster than this doesn't help
+    const SNAIL_SECONDS = 26;      // the snail takes this long, so even a toddler can beat it
+    const R = PLAYERS.map((pl, i) => ({ i, pl, pos: 0, here: false, local: false, lane: null, runner: null, body: null, lastTap: 0, place: 0 }));
+    const snail = { i: "snail", pl: SNAIL, pos: 0, lane: null, runner: null, body: null, place: 0 };
+    let phase = "lobby", round = 0, finishOrder = [], started = false, layoutKey = "", playersKey = "";
+    let snailTimer = 0, wrapTimer = 0, leaderSaid = null, lastLeadSay = 0;
+
+    // bunting with the odd pair of pants on the washing line
+    $("bunting").innerHTML = Array.from({ length: 14 }, (_, k) => k % 4 === 3 ? "<span>🩲</span>"
+      : `<span class="flag" style="--f:${["#ff8a1f", "#9cf26b", "#b97bff"][k % 3]}"></span>`).join("");
+
+    const humans = () => { const h = R.filter(r => r.here || r.local); return h.length ? h : [R[0]]; };
+    const racers = () => { const h = humans(); return h.length < 2 ? h.concat([snail]) : h; };
+
+    function makeLane(r) {
+      const d = document.createElement("div");
+      d.className = "lane" + (r === snail ? " snail" : ""); d.style.setProperty("--c", r.pl.color);
+      d.innerHTML = `<div class="badge"><span class="place"></span>${r.pl.name}</div><div class="finish"></div>
+        <div class="run"><div class="runner"><div class="body">${r.pl.face}</div></div></div>`;
+      r.lane = d; r.runner = d.querySelector(".runner"); r.body = d.querySelector(".body");
+      if (r !== snail) d.addEventListener("pointerdown", () => { if (started) hop(r); });
+      draw(r);
+    }
+    function layout() {
+      const list = racers();
+      const key = list.map(r => r.i).join(",");
+      if (key === layoutKey) return;
+      layoutKey = key;
+      const track = $("track");
+      for (const r of R.concat([snail])) if (!list.includes(r) && r.lane) { r.lane.remove(); r.lane = r.runner = r.body = null; }
+      for (const r of list) { if (!r.lane) makeLane(r); track.appendChild(r.lane); }
+      if (phase === "race") checkDone();
+    }
+    function draw(r) {
+      if (!r.runner) return;
+      r.runner.style.setProperty("--pos", r.pos.toFixed(4));
+      r.lane.classList.toggle("done", r.place > 0);
+      r.lane.querySelector(".place").textContent = r.place ? prizeFor(r.place).icon : r.pl.face;
+    }
+    function restart(el, cls) { if (!el) return; el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls); }
+
+    const link = connectScreen({
+      onAct: (p, a) => handleAct(p, a),
+      onPlayers: (set) => {
+        const key = [...set].sort().join(",");
+        if (key === playersKey) return;
+        playersKey = key;
+        R.forEach(r => { r.here = set.has(r.i); });
+        layout(); lobbyMessage(); share();
+      },
+    });
+    function share() {
+      const places = {};
+      R.forEach(r => { places[r.i] = r.place; });
+      link.share({ phase, round, places });
+    }
+    function lobbyMessage() {
+      const m = $("lobbyMsg");
+      if (!started || phase === "countdown" || phase === "race") { m.hidden = true; return; }
+      m.hidden = false;
+      m.textContent = phase === "done" ? "Tap a phone to race again!" : "Tap the big button on a phone to start the race!";
+    }
+
+    // ----- racing -----
+    function hop(r) {
+      if (phase !== "race" || r.place) return;
+      const now = performance.now();
+      if (now - r.lastTap < MIN_GAP_MS) return;
+      r.lastTap = now;
+      const list = racers();
+      const leader = Math.max(...list.map(x => x.pos));
+      const gap = leader - r.pos;                              // racers behind get bigger hops
+      r.pos = Math.min(1, r.pos + BASE * (1 + 4 * gap));
+      draw(r); restart(r.body, "hop"); boing(r.i);
+      if (r.pos >= 1) finish(r);
+      else announceLeader(list);
+    }
+    function announceLeader(list) {
+      const lead = list.filter(x => !x.place).sort((a, b) => b.pos - a.pos)[0];
+      const now = performance.now();
+      if (!lead || lead === leaderSaid || now - lastLeadSay < 4000 || list.length < 2) return;
+      leaderSaid = lead; lastLeadSay = now;
+      speak(lead === snail ? "The snail is winning!" : `${lead.pl.name} is in front!`);
+    }
+    function finish(r) {
+      r.pos = 1; r.place = finishOrder.length + 1; finishOrder.push(r);
+      draw(r); fanfare(); sparkles(r);
+      speak(r.place === 1 ? `${r.pl.name} wins the race!` : `Hooray, ${r.pl.name}!`);
+      share();
+      checkDone();
+      if (finishOrder.length === 1 && !wrapTimer) wrapTimer = setTimeout(prizeTime, 20000); // nobody waits forever
+    }
+    function checkDone() {
+      if (phase !== "race") return;
+      const h = racers().filter(r => r !== snail);
+      if (h.length && h.every(r => r.place)) { clearTimeout(wrapTimer); wrapTimer = setTimeout(prizeTime, 1400); }
+    }
+    function sparkles(r) {
+      const box = r.lane.querySelector(".finish").getBoundingClientRect();
+      const pool = ["✨", "⭐", "🍬", "🌟", "🍭"];
+      for (let k = 0; k < 10; k++) {
+        const s = document.createElement("div"); s.className = "spark"; s.textContent = pool[k % pool.length];
+        const a = Math.random() * 6.28, d = 60 + Math.random() * 140;
+        s.style.left = (box.left - 20) + "px"; s.style.top = (box.top + box.height / 2) + "px";
+        s.style.setProperty("--dx", Math.cos(a) * d + "px"); s.style.setProperty("--dy", Math.sin(a) * d + "px");
+        s.style.animationDelay = (k * 50) + "ms";
+        document.body.appendChild(s); setTimeout(() => s.remove(), 2000);
+      }
+    }
+    function prizeTime() {
+      if (phase !== "race") return;
+      clearInterval(snailTimer); clearTimeout(wrapTimer); wrapTimer = 0;
+      phase = "done";
+      const list = racers();
+      const order = finishOrder.concat(list.filter(r => !r.place));
+      $("prizeRow").innerHTML = order.map((r, k) => {
+        const pz = r.place ? prizeFor(r.place) : (r === snail ? { icon: "🐌", text: "Still going!" } : NEARLY);
+        return `<div class="prize" style="--c:${r.pl.color};animation-delay:${k * .25}s"><div class="who">${r.pl.face}</div><div class="gift">${pz.icon}</div><div class="what">${r.pl.name}<br>${pz.text}</div></div>`;
+      }).join("");
+      $("prizes").hidden = false;
+      setTimeout(() => { tone("triangle", 392, 392, .2, .2); fanfare(); }, 200);
+      speak("Everyone wins a prize!");
+      lobbyMessage(); share();
+    }
+    function startRace() {
+      if (!started || phase === "countdown" || phase === "race") return;
+      R.concat([snail]).forEach(r => { r.pos = 0; r.place = 0; r.lastTap = 0; draw(r); });
+      finishOrder = []; leaderSaid = null; round++;
+      $("prizes").hidden = true;
+      phase = "countdown"; lobbyMessage(); share();
+      const cd = $("countdown"); cd.hidden = false;
+      ["3", "2", "1", "Boo!"].forEach((s, k) => setTimeout(() => {
+        cd.classList.toggle("go", k === 3);
+        cd.innerHTML = `<span>${s}</span>`;
+        beep(k === 3);
+        if (k === 0) speak("Ready, steady…");
+      }, k * 800));
+      setTimeout(() => {
+        cd.hidden = true; phase = "race"; share();
+        clearInterval(snailTimer);
+        snailTimer = setInterval(() => {
+          if (!snail.lane || snail.place) return;
+          snail.pos = Math.min(1, snail.pos + 0.25 / SNAIL_SECONDS);
+          draw(snail);
+          if (snail.pos >= 1) finish(snail);
+        }, 250);
+      }, 3300);
+    }
+
+    function handleAct(p, a) {
+      const r = R[p]; if (!r || !a || typeof a !== "object") return;
+      if (a.a === "tap") hop(r);
+      else if (a.a === "start") startRace();
+    }
+
+    // local play (no phones)
+    window.addEventListener("keydown", (e) => {
+      if (!started) return;
+      if (["1", "2", "3", "4"].includes(e.key)) { const r = R[Number(e.key) - 1]; if (!r.local) { r.local = true; layout(); } hop(r); }
+      else if (e.key === " " || e.key === "Enter") { e.preventDefault(); startRace(); }
+    });
+    $("startBtn").onclick = async () => {
+      audio(); $("start").hidden = true; started = true; boing(0);
+      lobbyMessage(); share();
+      try { if (navigator.wakeLock) await navigator.wakeLock.request("screen"); } catch (e) {}
+      try { if (document.documentElement.requestFullscreen) await document.documentElement.requestFullscreen(); } catch (e) {}
+    };
+    layout(); share();
+  }
+
+  // =====================================================================
+  // CONTROLLER
+  // =====================================================================
+  function startPad(code) {
+    if (!code) { Net.askCode((c) => startPad(c)); return; }
+    $("pad").hidden = false; document.body.classList.add("on-pad");
+    let me = -1, last = null;
+    try { const s = localStorage.getItem("race-player"); if (s !== null && okPlayer(Number(s))) me = Number(s); } catch (e) {}
+    const link = connectPad(code, { onState });
+    const act = (a) => { if (me >= 0) link.act({ ...a, p: me }); };
+
+    PLAYERS.forEach((pl, i) => {
+      const b = document.createElement("button");
+      b.className = "pick"; b.id = "who-" + i; b.style.setProperty("--c", pl.color);
+      b.innerHTML = `${pl.face}<span>${pl.name}</span>`;
+      b.onclick = () => { audio(); boing(i, .25); choose(i); };
+      $("whogrid").appendChild(b);
+    });
+    function choose(i) {
+      me = i;
+      try { localStorage.setItem("race-player", String(i)); } catch (e) {}
+      link.setMe(i);
+      const pl = PLAYERS[i], btn = $("bigbtn");
+      btn.textContent = pl.face; btn.style.setProperty("--c", pl.color);
+      $("who").hidden = true; $("play").hidden = false; $("swap").hidden = false;
+      render();
+    }
+    function showWho() { $("who").hidden = false; $("play").hidden = true; $("swap").hidden = true; }
+    $("swap").onclick = () => { audio(); showWho(); };
+
+    // what the big button does right now
+    function mode() {
+      if (!last) return { kind: "wait", title: "Looking for the TV…", label: "" };
+      const place = last.places ? Number(last.places[me]) || 0 : 0;
+      if (last.phase === "countdown") return { kind: "wait", title: "Get ready…", label: "Wait for Boo!" };
+      if (last.phase === "race") return place ? { kind: "wait", title: "You finished! 🎉", label: `${prizeFor(place).icon} ${prizeFor(place).text}` }
+                                              : { kind: "tap", title: "Go go go!", label: "Tap tap tap!" };
+      if (last.phase === "done") return { kind: "start", title: `${prizeFor(place).icon} ${prizeFor(place).text}`, label: "Tap to race again!" };
+      return { kind: "start", title: "Ready to race?", label: "Tap to start!" };
+    }
+    function render() {
+      if (me < 0) return;
+      const m = mode(), btn = $("bigbtn");
+      $("padTitle").textContent = m.title; $("btnLabel").textContent = m.label;
+      btn.classList.toggle("wait", m.kind === "wait");
+      btn.classList.toggle("go", m.kind === "start");
+    }
+    function onState(st) { if (!st || typeof st !== "object") return; last = st; render(); }
+
+    const btn = $("bigbtn");
+    btn.addEventListener("pointerdown", (e) => {
+      e.preventDefault(); audio();
+      const m = mode();
+      if (m.kind === "wait") return;
+      act({ a: m.kind === "tap" ? "tap" : "start" });
+      if (m.kind === "tap") boing(me, .14);
+      try { navigator.vibrate && navigator.vibrate(25); } catch (err) {}
+      btn.classList.add("press");
+      const r = document.createElement("span"); r.className = "ripple"; btn.appendChild(r);
+      setTimeout(() => r.remove(), 520);
+    });
+    const up = () => btn.classList.remove("press");
+    btn.addEventListener("pointerup", up); btn.addEventListener("pointercancel", up); btn.addEventListener("pointerleave", up);
+
+    if (me >= 0) choose(me); else showWho();
+  }
+
+  // ---------- connection START ----------
+  function connectScreen({ onAct, onPlayers }) {
+    let net = null, last = null;
+    const who = new Map();
+    const update = () => { Net.setCount(who.size); onPlayers(new Set([...who.values()].filter(okPlayer))); };
+    $("hint").textContent = "Getting ready for phones…";
+    net = Net.host("race", {
+      onReady: (code) => { Net.joinCard(code); $("hint").hidden = true; },
+      onJoin: (c) => { who.set(c, -1); update(); if (last) net.send(c, last); },
+      onLeave: (c) => { who.delete(c); update(); },
+      onMessage: (m, c) => {
+        const p = Number(m.p); if (!okPlayer(p)) return;
+        if (who.get(c) !== p) { who.set(c, p); update(); }
+        if (m.t === "act") onAct(p, m);
+      },
+      onProblem: () => { $("hint").hidden = false; $("hint").textContent = "Phones can't connect right now. Check the internet connection and reload."; },
+    });
+    return { share(state) { last = { t: "state", ...state }; if (net) net.broadcast(last); } };
+  }
+  function connectPad(code, { onState }) {
+    let me = -1, link = null;
+    link = Net.join("race", code, {
+      onStatus: (s) => {
+        const ok = s === "open";
+        $("dot").classList.toggle("ok", ok);
+        $("statusText").textContent = ok ? "Connected" : s === "notfound" ? `Looking for game ${code}…` : "Connecting to the TV…";
+        if (ok && me >= 0) link.send({ t: "hello", p: me });
+      },
+      onMessage: (m) => { if (m.t === "state") onState(m); },
+    });
+    Net.padMenuButton(link);
+    return {
+      act(a) { link.send({ t: "act", ...a }); },
+      setMe(p) { me = p; link.send({ t: "hello", p }); },
+    };
+  }
+  // ---------- connection END ----------
+})();
+</script>
+
+</body>
+</html>
