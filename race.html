@@ -3,6 +3,26 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<script>
+/* If something fails to load (an old cached file, a dropped connection), say so instead of showing a blank screen. */
+(function () {
+  var shown = false;
+  function show(msg) {
+    if (shown) return; shown = true;
+    var d = document.createElement("div");
+    d.setAttribute("style", "position:fixed;inset:0;z-index:99;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:24px;text-align:center;background:#1b0f33;color:#fff6e6;font:500 18px system-ui,sans-serif");
+    d.innerHTML = '<div style="font-size:56px">🎃</div><div style="font:800 26px system-ui,sans-serif">Oops, part of the game didn\'t load</div><div style="max-width:30em;opacity:.85">Reload to try again. If it keeps happening, check the internet connection.</div><button style="font:800 22px system-ui,sans-serif;padding:10px 32px;border-radius:999px;border:0;background:#ff8a1f;color:#1b0f33">Reload</button><div style="font-size:13px;opacity:.55;max-width:40em;word-break:break-word"></div>';
+    d.lastChild.textContent = String(msg || "");
+    d.querySelector("button").onclick = function () { location.reload(); };
+    (document.body || document.documentElement).appendChild(d);
+  }
+  window.addEventListener("error", function (e) {
+    var t = e.target;
+    if (t && t.tagName === "SCRIPT") show("Couldn't load " + (t.getAttribute("src") || "a script"));
+    else if (e.message) show(e.message);
+  }, true);
+})();
+</script>
 <style>[hidden]{display:none!important}body{margin:0}</style>
 <title>Spooky Derby</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -225,9 +245,9 @@ button:focus-visible { outline: 4px solid var(--moon); outline-offset: 3px; }
   </div>
 </section>
 
-<script src="peerjs.min.js"></script>
-<script src="qrcode.js"></script>
-<script src="net.js"></script>
+<script src="peerjs.min.js?v=7e60515a"></script>
+<script src="qrcode.js?v=4c79be16"></script>
+<script src="net.js?v=273e3dda"></script>
 <script>
 (() => {
   const $ = (id) => document.getElementById(id);

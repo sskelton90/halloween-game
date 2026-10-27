@@ -3,6 +3,26 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<script>
+/* If something fails to load (an old cached file, a dropped connection), say so instead of showing a blank screen. */
+(function () {
+  var shown = false;
+  function show(msg) {
+    if (shown) return; shown = true;
+    var d = document.createElement("div");
+    d.setAttribute("style", "position:fixed;inset:0;z-index:99;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:24px;text-align:center;background:#1b0f33;color:#fff6e6;font:500 18px system-ui,sans-serif");
+    d.innerHTML = '<div style="font-size:56px">🎃</div><div style="font:800 26px system-ui,sans-serif">Oops, part of the game didn\'t load</div><div style="max-width:30em;opacity:.85">Reload to try again. If it keeps happening, check the internet connection.</div><button style="font:800 22px system-ui,sans-serif;padding:10px 32px;border-radius:999px;border:0;background:#ff8a1f;color:#1b0f33">Reload</button><div style="font-size:13px;opacity:.55;max-width:40em;word-break:break-word"></div>';
+    d.lastChild.textContent = String(msg || "");
+    d.querySelector("button").onclick = function () { location.reload(); };
+    (document.body || document.documentElement).appendChild(d);
+  }
+  window.addEventListener("error", function (e) {
+    var t = e.target;
+    if (t && t.tagName === "SCRIPT") show("Couldn't load " + (t.getAttribute("src") || "a script"));
+    else if (e.message) show(e.message);
+  }, true);
+})();
+</script>
 <title>Halloween Party Games</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;800&family=Griffy&display=swap">
@@ -13,13 +33,13 @@
   --glass: rgba(255, 246, 230, 0.12); --glass-line: rgba(255, 246, 230, 0.32);
   color-scheme: dark;
 }
-html, body { height: 100%; }
+html { min-height: 100%; }
 body {
   margin: 0; color: var(--text); font-family: "Baloo 2", "Trebuchet MS", system-ui, sans-serif;
   background: linear-gradient(180deg, var(--night), var(--dusk) 60%, var(--glow));
-  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1.6rem; text-align: center;
+  min-height: 100vh; min-height: 100dvh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1.6rem; text-align: center;
   padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
-  padding-block: calc(16px + env(safe-area-inset-top, 0px)) calc(16px + env(safe-area-inset-bottom, 0px));
+  padding-block: calc(16px + env(safe-area-inset-top, 0px)) calc(24px + env(safe-area-inset-bottom, 0px));
   box-sizing: border-box; -webkit-tap-highlight-color: transparent;
 }
 h1 { margin: 0; font-family: "Griffy", "Baloo 2", cursive; font-weight: 400; font-size: clamp(2.6rem, 9vw, 6rem); line-height: 1; color: var(--candy); text-wrap: balance; }
@@ -40,6 +60,18 @@ p { margin: 0; max-width: 38ch; font-size: 1.15rem; opacity: .9; }
 .dot.ok { background: var(--slime); }
 body.phone .game { flex-basis: 100%; padding: 1.6rem 1rem; }
 body.phone .faces { font-size: 3.6rem; }
+/* Phones: compact cards with the pictures beside the words, so all three fit on screen */
+@media (max-width: 600px) {
+  body { gap: 1rem; padding-top: calc(20px + env(safe-area-inset-top, 0px)); }
+  h1 { font-size: clamp(2.2rem, 11vw, 3rem); }
+  p { font-size: 1rem; }
+  .games { gap: .75rem; }
+  .game, body.phone .game { flex-basis: 100%; display: grid; grid-template-columns: 4.8rem minmax(0, 1fr); column-gap: .9rem; row-gap: .1rem;
+    align-items: center; text-align: left; padding: .9rem 1rem; border-radius: 22px; }
+  .faces, body.phone .faces { grid-row: 1 / span 2; font-size: 1.9rem; line-height: 1.15; text-align: center; overflow-wrap: anywhere; }
+  .name { font-size: 1.4rem; line-height: 1.1; }
+  .what { font-size: .95rem; line-height: 1.25; }
+}
 @media (prefers-reduced-motion: reduce) { .game { transition: none; } }
 </style>
 </head>
@@ -53,9 +85,9 @@ body.phone .faces { font-size: 3.6rem; }
   </div>
   <div class="status" id="status" hidden><span class="dot" id="dot"></span><span id="statusText">Looking for the TV…</span></div>
 
-<script src="peerjs.min.js"></script>
-<script src="qrcode.js"></script>
-<script src="net.js"></script>
+<script src="peerjs.min.js?v=7e60515a"></script>
+<script src="qrcode.js?v=4c79be16"></script>
+<script src="net.js?v=273e3dda"></script>
 <script>
 (() => {
   const $ = (id) => document.getElementById(id);
