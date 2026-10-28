@@ -219,7 +219,9 @@ button:focus-visible { outline: 4px solid var(--moon); outline-offset: 3px; }
 .pad, .event { height: 100dvh; box-sizing: border-box; }
 .tabs { grid-template-columns: repeat(7, minmax(0, 1fr)); width: 100%; max-width: 680px; margin-inline: auto; }
 .tab { aspect-ratio: auto; height: clamp(46px, 11vw, 70px); }
-.tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.tiles { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .6rem; }
+.tile span { font-size: .95rem; line-height: 1.15; }
+@media (orientation: portrait) { .tile svg { aspect-ratio: 1.15; } }
 .whogrid { width: min(520px, 100%, calc((100dvh - 12rem) * 1)); }
 @media (min-width: 600px) and (orientation: portrait) {
   .tiles { grid-template-columns: repeat(3, minmax(0, 1fr)); }
@@ -245,8 +247,8 @@ button:focus-visible { outline: 4px solid var(--moon); outline-offset: 3px; }
 }
 /* Short landscape phones: smaller tile labels so two rows fit */
 @media (orientation: landscape) and (max-height: 500px) {
-  .tiles { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .5rem; }
-  .tile span { font-size: .9rem; }
+  .tiles { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: .5rem; }
+  .tile span { font-size: .85rem; }
   .pick { font-size: 2.6rem; border-radius: 22px; }
   .pick span { font-size: 1rem; }
   .event h2 { font-size: 1.6rem; }
@@ -257,10 +259,283 @@ button:focus-visible { outline: 4px solid var(--moon); outline-offset: 3px; }
   .spark { animation-duration: .01s; }
 }
 </style>
+<style id="kit-css">
+/* ===== Storybook night kit: shared look for every game =====
+   Layout: painted sky, glowing moon, rolling outlined hills and drifting fog behind each game;
+   chunky ink-outlined stickers for anything you tap. Only opacity and transform ever animate. */
+:root {
+  --night: #17123a;
+  --dusk: #2c2464;
+  --glow: #5a4a92;
+  --moon: #fff0c2;
+  --candy: #ff9a3c;
+  --slime: #a8e483;
+  --ink: #140f2e;
+  --text: #fff4e2;
+  --paper: #fff4e2;
+  --hill-back: #2c3266;
+  --hill-front: #2f5631;
+  --glass: rgba(255, 240, 220, 0.13);
+  --glass-line: rgba(255, 240, 220, 0.38);
+  --hill: 11vh;
+  --wobble: 30px 24px 32px 22px / 24px 32px 22px 30px;
+  --outline: .045em 0 0 var(--ink), -.045em 0 0 var(--ink), 0 .045em 0 var(--ink), 0 -.045em 0 var(--ink),
+             .032em .032em 0 var(--ink), -.032em .032em 0 var(--ink), .032em -.032em 0 var(--ink), -.032em -.032em 0 var(--ink),
+             0 .1em 0 var(--ink);
+}
+body { background: var(--night); }
+
+/* Painted sky with a little paper grain */
+.sky {
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 .95 0 0 0 0 .85 0 0 0 .07 0'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)'/%3E%3C/svg%3E"),
+    radial-gradient(55% 45% at 76% 6%, rgba(255, 240, 194, .16), transparent 70%),
+    radial-gradient(90% 40% at 50% 100%, rgba(255, 170, 110, .14), transparent 70%),
+    linear-gradient(180deg, #120e30 0%, var(--night) 22%, var(--dusk) 60%, var(--glow) 100%);
+}
+
+/* Twinkling storybook stars (two layers that breathe out of step) */
+.kit-stars { position: fixed; inset: 0 0 30% 0; z-index: 0; pointer-events: none;
+  -webkit-mask-image: linear-gradient(180deg, #000 55%, transparent); mask-image: linear-gradient(180deg, #000 55%, transparent); }
+.kit-stars i { position: absolute; inset: 0; background-repeat: repeat; will-change: opacity; }
+.kit-stars i:first-child {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='640' height='420'%3E%3Cg fill='%23fff3d2'%3E%3Ccircle cx='12' cy='50' r='1.3'/%3E%3Ccircle cx='93' cy='22' r='0.8'/%3E%3Ccircle cx='342' cy='297' r='1.0'/%3E%3Ccircle cx='97' cy='309' r='0.8'/%3E%3Ccircle cx='90' cy='225' r='1.3'/%3E%3Ccircle cx='336' cy='88' r='1.6'/%3E%3Ccircle cx='63' cy='12' r='1.3'/%3E%3Ccircle cx='220' cy='89' r='1.3'/%3E%3Ccircle cx='235' cy='398' r='1.0'/%3E%3Ccircle cx='462' cy='176' r='1.6'/%3E%3Ccircle cx='42' cy='25' r='1.0'/%3E%3Ccircle cx='229' cy='88' r='1.3'/%3E%3Ccircle cx='23' cy='307' r='1.3'/%3E%3Ccircle cx='416' cy='94' r='1.3'/%3E%3Ccircle cx='465' cy='84' r='1.0'/%3E%3Ccircle cx='309' cy='113' r='1.1'/%3E%3Ccircle cx='215' cy='167' r='1.1'/%3E%3Ccircle cx='612' cy='406' r='0.8'/%3E%3Ccircle cx='503' cy='130' r='1.0'/%3E%3Ccircle cx='358' cy='390' r='1.1'/%3E%3Ccircle cx='63' cy='83' r='1.6'/%3E%3Ccircle cx='241' cy='398' r='1.3'/%3E%3Ccircle cx='184' cy='130' r='1.0'/%3E%3Ccircle cx='76' cy='87' r='1.1'/%3E%3Ccircle cx='285' cy='329' r='1.6'/%3E%3Ccircle cx='455' cy='114' r='0.8'/%3E%3Cpath transform='translate%28604 92%29 scale%280.7%29' d='M0-9q1 6 2.2 6.8Q8 0 9 0q-6 1-6.8 2.2Q0 8 0 9q-1-6-2.2-6.8Q-8 0-9 0q6-1 6.8-2.2Q0-8 0-9z' stroke='%23140f2e' stroke-width='1.3'/%3E%3Cpath transform='translate%28451 350%29 scale%280.9%29' d='M0-9q1 6 2.2 6.8Q8 0 9 0q-6 1-6.8 2.2Q0 8 0 9q-1-6-2.2-6.8Q-8 0-9 0q6-1 6.8-2.2Q0-8 0-9z' stroke='%23140f2e' stroke-width='1.3'/%3E%3Cpath transform='translate%2848 254%29 scale%281.1%29' d='M0-9q1 6 2.2 6.8Q8 0 9 0q-6 1-6.8 2.2Q0 8 0 9q-1-6-2.2-6.8Q-8 0-9 0q6-1 6.8-2.2Q0-8 0-9z' stroke='%23140f2e' stroke-width='1.3'/%3E%3C/g%3E%3C/svg%3E");
+  animation: kit-twinkle 3.2s ease-in-out infinite alternate; }
+.kit-stars i:last-child {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='770' height='510'%3E%3Cg fill='%23fff8e4'%3E%3Ccircle cx='216' cy='191' r='1.6'/%3E%3Ccircle cx='378' cy='301' r='0.8'/%3E%3Ccircle cx='374' cy='404' r='1.6'/%3E%3Ccircle cx='532' cy='493' r='0.8'/%3E%3Ccircle cx='198' cy='388' r='1.3'/%3E%3Ccircle cx='270' cy='10' r='1.3'/%3E%3Ccircle cx='448' cy='228' r='0.8'/%3E%3Ccircle cx='105' cy='289' r='1.6'/%3E%3Ccircle cx='42' cy='312' r='1.0'/%3E%3Ccircle cx='605' cy='479' r='1.1'/%3E%3Ccircle cx='529' cy='282' r='1.6'/%3E%3Ccircle cx='534' cy='267' r='1.6'/%3E%3Ccircle cx='310' cy='267' r='1.6'/%3E%3Ccircle cx='356' cy='364' r='1.3'/%3E%3Ccircle cx='252' cy='191' r='1.6'/%3E%3Ccircle cx='601' cy='378' r='1.1'/%3E%3Ccircle cx='530' cy='295' r='1.0'/%3E%3Ccircle cx='36' cy='339' r='1.3'/%3E%3Ccircle cx='162' cy='127' r='1.1'/%3E%3Ccircle cx='160' cy='451' r='1.1'/%3E%3Ccircle cx='417' cy='126' r='1.1'/%3E%3Ccircle cx='564' cy='419' r='0.8'/%3E%3Cpath transform='translate%28364 414%29 scale%280.9%29' d='M0-9q1 6 2.2 6.8Q8 0 9 0q-6 1-6.8 2.2Q0 8 0 9q-1-6-2.2-6.8Q-8 0-9 0q6-1 6.8-2.2Q0-8 0-9z' stroke='%23140f2e' stroke-width='1.3'/%3E%3Cpath transform='translate%28205 110%29 scale%281.1%29' d='M0-9q1 6 2.2 6.8Q8 0 9 0q-6 1-6.8 2.2Q0 8 0 9q-1-6-2.2-6.8Q-8 0-9 0q6-1 6.8-2.2Q0-8 0-9z' stroke='%23140f2e' stroke-width='1.3'/%3E%3C/g%3E%3C/svg%3E");
+  opacity: .35; animation: kit-twinkle 4.4s ease-in-out -2s infinite alternate-reverse; }
+@keyframes kit-twinkle { from { opacity: 1; } to { opacity: .3; } }
+
+/* Rolling hand-drawn hills */
+.kit-land { position: fixed; left: 0; right: 0; bottom: 0; height: var(--hill); z-index: 0; pointer-events: none;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 200' preserveAspectRatio='none'%3E%3Cpath d='M-10 62C90 18 210 6 330 40S520 96 640 58 860 4 990 34 1150 70 1210 44V210H-10Z' fill='%232c3266' stroke='%23140f2e' stroke-width='5' vector-effect='non-scaling-stroke'/%3E%3Cpath d='M-10 120C150 72 330 70 520 104S860 150 1010 100 1170 84 1210 92V210H-10Z' fill='%232f5631' stroke='%23140f2e' stroke-width='6' vector-effect='non-scaling-stroke'/%3E%3Cpath d='M-10 170C250 140 520 150 760 168S1100 176 1210 160V210H-10Z' fill='%23284a2b'/%3E%3C/svg%3E") bottom center / max(100%, 1100px) 100% no-repeat; }
+body.on-pad .kit-land { height: 8vh; }
+
+/* Drifting fog along the ground */
+.kit-fog { position: fixed; left: 0; right: 0; bottom: 0; height: 30vh; z-index: 0; pointer-events: none; overflow: hidden; }
+.kit-fog i { position: absolute; bottom: -4vh; left: -50vw; width: 200vw; height: 100%; will-change: transform;
+  background:
+    radial-gradient(18% 34% at 12% 70%, rgba(222, 214, 255, .16), transparent 70%),
+    radial-gradient(22% 30% at 38% 82%, rgba(222, 214, 255, .13), transparent 70%),
+    radial-gradient(16% 36% at 63% 74%, rgba(222, 214, 255, .15), transparent 70%),
+    radial-gradient(24% 30% at 88% 84%, rgba(222, 214, 255, .12), transparent 70%);
+  animation: kit-drift 46s ease-in-out infinite alternate; }
+.kit-fog i:last-child { bottom: -10vh; animation-duration: 64s; animation-direction: alternate-reverse; opacity: .8; }
+@keyframes kit-drift { from { transform: translate3d(-18vw, 0, 0); } to { transform: translate3d(18vw, 0, 0); } }
+
+/* The moon: chunky outline and a soft halo */
+.moon { border: max(3px, .55vmin) solid var(--ink);
+  box-shadow: 0 0 0 1.6vmin rgba(255, 240, 194, .09), 0 0 0 4vmin rgba(255, 240, 194, .05), 0 0 9vmin 3vmin rgba(255, 240, 194, .22); }
+.moon::before, .moon::after { background: var(--ink); }
+.moon i { border-bottom-color: var(--ink); }
+html body.on-screen .moon { display: block; width: min(12vmin, 110px); top: calc(1.2vh + env(safe-area-inset-top, 0px)); right: clamp(160px, 20vw, 320px); }
+
+/* Storybook lettering: ink-outlined display type */
+:is(.home h1, .brand, h2, .prizes h2) { text-shadow: var(--outline); letter-spacing: .01em; }
+.home h1 { text-shadow: var(--outline), 0 .14em 0 rgba(0, 0, 0, .25); }
+
+/* Chunky stickers for everything you tap */
+.choice { background: var(--paper); color: var(--ink); border: 4px solid var(--ink); border-radius: var(--wobble);
+  box-shadow: 0 7px 0 var(--ink), 0 12px 24px rgba(0, 0, 0, .25); }
+.choice small { opacity: .75; }
+.choice:nth-child(2) { border-radius: 24px 32px 22px 30px / 30px 22px 32px 24px; }
+.start button { border: 4px solid var(--ink); border-radius: 999px 900px 999px 940px; box-shadow: 0 8px 0 var(--ink), 0 14px 30px rgba(0, 0, 0, .3); }
+.pick { border: 4px solid var(--ink); border-radius: var(--wobble); box-shadow: inset 0 -10px 0 rgba(0, 0, 0, .16), 0 6px 0 var(--ink); }
+.pick:nth-child(odd) { border-radius: 24px 32px 22px 30px / 30px 22px 32px 24px; }
+.bigbtn { border: max(5px, 1.1vmin) solid var(--ink); box-shadow: inset 0 -18px 0 rgba(0, 0, 0, .18), 0 12px 0 var(--ink), 0 22px 40px rgba(0, 0, 0, .3); }
+.bigbtn.press { box-shadow: inset 0 -8px 0 rgba(0, 0, 0, .18), 0 4px 0 var(--ink); }
+.hint { border: 2px solid var(--glass-line); outline: 2px dashed rgba(255, 240, 220, .22); outline-offset: -7px; }
+.start { background: rgba(20, 15, 46, .55); }
+
+/* Storybook pages and badges (each rule only lands where a game has that piece) */
+.card { background: linear-gradient(180deg, #fff8ea, #f6e6c8); color: var(--ink); border: 5px solid var(--ink); border-radius: var(--wobble);
+  box-shadow: 0 10px 0 var(--ink), 0 22px 50px rgba(0, 0, 0, .35); }
+.card h2 { color: var(--candy); }
+.speech, .bubble, .say { border-radius: 26px 20px 28px 18px / 20px 28px 18px 26px; box-shadow: 0 6px 0 var(--ink); }
+.lane { box-shadow: 0 0 0 .45vh var(--ink), 0 .9vh 0 .45vh var(--ink); }
+.jar, .feeder, .tummy, .book, .score.on, .prize, .sign { box-shadow: 0 0 0 .35vh var(--ink), 0 .6vh 0 .35vh var(--ink); }
+
+/* Phone buttons become chunky stickers */
+:is(.pad, .pad-view) button:where(:not(.small-btn, .swap, .menu-btn, .games-btn, .bigbtn, [hidden])) { box-shadow: 0 0 0 3px var(--ink), 0 6px 0 3px var(--ink); }
+:is(.pad, .pad-view) button:where(:not(.small-btn, .swap, .menu-btn, .games-btn, .bigbtn)):active { box-shadow: 0 0 0 3px var(--ink), 0 2px 0 3px var(--ink); }
+#joinCard { box-shadow: 0 0 0 3px var(--ink), 0 7px 0 3px var(--ink); }
+#joinCard .jc-qr { box-shadow: 0 0 0 3px var(--ink); }
+
+#statusText { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Calm mode: the TV is struggling, so the backdrop holds still */
+body.kit-calm .kit-stars i, body.kit-calm .kit-fog i { animation-play-state: paused; }
+@media (prefers-reduced-motion: reduce) { .kit-stars i, .kit-fog i { animation: none; } }
+
+:root { --hill: 15vh; }
+
+</style>
 </head>
 <body>
 
 <div class="sky"></div>
+<div class="kit-stars" aria-hidden="true"><i></i><i></i></div>
+<div class="kit-land" aria-hidden="true"></div>
+<div class="kit-fog" aria-hidden="true"><i></i><i></i></div>
+<script>
+window.KIT = (() => {
+  // ===== Storybook sound kit: warm layered voices, a small echoey room, and signature effects =====
+  const AC = window.AudioContext || window.webkitAudioContext;
+  let ac = null, dry = null, wet = null, nbuf = null;
+  function ctx() {
+    if (ac) return ac;
+    try { ac = new AC(); } catch (e) { return (ac = null); }
+    try {
+      const comp = ac.createDynamicsCompressor();
+      comp.threshold.value = -16; comp.knee.value = 10; comp.ratio.value = 5; comp.attack.value = 0.004; comp.release.value = 0.25;
+      const warm = ac.createBiquadFilter(); warm.type = "lowpass"; warm.frequency.value = 6500; warm.Q.value = 0.4;
+      warm.connect(comp); comp.connect(ac.destination);
+      dry = warm;
+      // a cosy little room: two echo taps, one each side, with a soft tail
+      wet = ac.createGain(); wet.gain.value = 0.2;
+      const d1 = ac.createDelay(1), d2 = ac.createDelay(1), fb = ac.createGain(), soft = ac.createBiquadFilter();
+      d1.delayTime.value = 0.13; d2.delayTime.value = 0.21; fb.gain.value = 0.3; soft.type = "lowpass"; soft.frequency.value = 2200;
+      wet.connect(d1); wet.connect(d2);
+      const side = (node, p) => { if (!ac.createStereoPanner) return node; const s = ac.createStereoPanner(); s.pan.value = p; node.connect(s); return s; };
+      side(d1, -0.45).connect(soft); side(d2, 0.45).connect(soft);
+      soft.connect(fb); fb.connect(d1); soft.connect(warm);
+      nbuf = ac.createBuffer(1, ac.sampleRate, ac.sampleRate);
+      const ch = nbuf.getChannelData(0); for (let i = 0; i < ch.length; i++) ch[i] = Math.random() * 2 - 1;
+    } catch (e) { dry = ac.destination; wet = null; }
+    return ac;
+  }
+  function out(node, echo, p) {
+    if (p && ac.createStereoPanner) { const s = ac.createStereoPanner(); s.pan.value = p; node.connect(s); node = s; }
+    node.connect(dry || ac.destination);
+    if (wet && echo) { if (echo === 1) node.connect(wet); else { const g = ac.createGain(); g.gain.value = echo; node.connect(g); g.connect(wet); } }
+  }
+  const live = () => ac && ac.state !== "closed";
+
+  // One note or sweep, made of a few layers so it sounds round instead of beepy.
+  function tone(type, f0, f1, dur, vol, delay = 0, vib = 0, rate = 7) {
+    if (!live()) return;
+    const t = ac.currentTime + delay;
+    dur = Math.max(0.03, dur); f0 = Math.max(20, f0); f1 = Math.max(20, f1); vol = vol * 0.85;
+    const steady = f0 === f1, buzzy = type === "square" || type === "sawtooth";
+    const g = ac.createGain(); let head = g;
+    if (buzzy) { // tame the buzz into something rubbery
+      const lp = ac.createBiquadFilter(); lp.type = "lowpass"; lp.Q.value = 2.5;
+      const c = Math.min(5000, Math.max(500, Math.max(f0, f1) * 4));
+      lp.frequency.setValueAtTime(c * 1.4, t); lp.frequency.exponentialRampToValueAtTime(c * 0.6, t + dur);
+      g.connect(lp); head = lp;
+    }
+    const oscs = [];
+    const layer = (tp, mult, det, lvl) => {
+      const o = ac.createOscillator(); o.type = tp; o.detune.value = det;
+      o.frequency.setValueAtTime(f0 * mult, t); o.frequency.exponentialRampToValueAtTime(f1 * mult, t + dur);
+      if (lvl === 1) o.connect(g); else { const lg = ac.createGain(); lg.gain.value = lvl; o.connect(lg); lg.connect(g); }
+      oscs.push(o);
+    };
+    layer(type, 1, 0, 1);
+    if (buzzy) layer(type, 1, 12, 0.5);
+    else { layer("sine", 2, 4, type === "sine" ? 0.16 : 0.1); if (steady) layer("sine", 3.01, 0, 0.07); }
+    if (!buzzy && Math.min(f0, f1) < 300) layer("sine", 0.5, 0, 0.22);
+    if (vib) {
+      const l = ac.createOscillator(), lg = ac.createGain(); l.frequency.value = rate; lg.gain.value = vib;
+      l.connect(lg); oscs.forEach(o => lg.connect(o.frequency)); l.start(t); l.stop(t + dur + 0.3);
+    }
+    g.gain.setValueAtTime(0.0001, t);
+    if (steady) { // a struck bell: quick strike, gentle ring
+      g.gain.exponentialRampToValueAtTime(vol, t + 0.006);
+      g.gain.exponentialRampToValueAtTime(vol * 0.4, t + dur * 0.5);
+      g.gain.exponentialRampToValueAtTime(0.0008, t + dur + 0.18);
+    } else {
+      g.gain.exponentialRampToValueAtTime(vol, t + 0.012);
+      g.gain.setValueAtTime(vol, t + dur * 0.6);
+      g.gain.exponentialRampToValueAtTime(0.0008, t + dur + 0.04);
+    }
+    out(head, steady ? 1 : 0.6, (Math.random() - 0.5) * 0.3);
+    oscs.forEach(o => { o.start(t); o.stop(t + dur + 0.25); });
+  }
+
+  // Filtered noise: pops, knocks, crunches, whooshes, splashes.
+  function noise({ f0 = 1000, f1 = f0, q = 1, type = "bandpass", dur = 0.2, vol = 0.2, delay = 0, attack = 0.004, echo = 0.5, pan = 0 } = {}) {
+    if (!live() || !nbuf) return;
+    const t = ac.currentTime + delay;
+    const s = ac.createBufferSource(); s.buffer = nbuf;
+    const f = ac.createBiquadFilter(); f.type = type; f.Q.value = q;
+    f.frequency.setValueAtTime(Math.max(20, f0), t); f.frequency.exponentialRampToValueAtTime(Math.max(20, f1), t + dur);
+    const g = ac.createGain();
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + Math.min(attack, dur * 0.9)); g.gain.exponentialRampToValueAtTime(0.0006, t + dur);
+    s.connect(f); f.connect(g); out(g, echo, pan);
+    s.start(t, Math.random() * 0.5); s.stop(t + dur + 0.05);
+  }
+
+  const PENTA = [1047, 1175, 1319, 1568, 1760, 2093];
+  const fx = {
+    ctx, tone, noise,
+    pop(v = 0.3) { // a wet bubble bloop with a tiny click
+      tone("sine", 380, 1300, 0.07, v);
+      noise({ type: "highpass", f0: 2600, dur: 0.05, vol: v * 0.5, echo: 0.3 });
+      tone("sine", 1600, 2300, 0.05, v * 0.25, 0.05);
+    },
+    boing(f, v = 0.3) { // up, then a springy wobble
+      tone("sine", f, f * 2.8, 0.1, v);
+      tone("sine", f * 2.8, f * 1.7, 0.38, v * 0.55, 0.09, f * 0.14, 15);
+    },
+    knock(v = 0.4, n = 3) { // knuckles on a wooden door
+      for (let k = 0; k < n; k++) {
+        tone("sine", 150, 62, 0.12, v, k * 0.15);
+        noise({ f0: 750, f1: 420, q: 2.6, dur: 0.07, vol: v * 0.9, delay: k * 0.15, echo: 0.8 });
+      }
+    },
+    chomp(v = 0.3, delay = 0) { // munch + crunch
+      noise({ type: "lowpass", f0: 1800, f1: 300, q: 3, dur: 0.1, vol: v, delay });
+      tone("square", 150, 70, 0.09, v * 0.6, delay);
+      noise({ f0: 3200, q: 1.5, dur: 0.045, vol: v * 0.45, delay: delay + 0.05, echo: 0.2 });
+    },
+    sparkle(v = 0.16, n = 5, delay = 0) { // a twinkly run of little bells
+      let last = -1;
+      for (let i = 0; i < n; i++) {
+        let k; do { k = Math.floor(Math.random() * PENTA.length); } while (k === last); last = k;
+        tone("triangle", PENTA[k], PENTA[k], 0.32, v * (1 - i * 0.08), delay + i * 0.065);
+      }
+    },
+    whoosh(v = 0.15, up = true, dur = 0.45, delay = 0) {
+      noise({ f0: up ? 300 : 2400, f1: up ? 2400 : 300, q: 1.2, dur, vol: v * 1.8, attack: dur * 0.4, echo: 0.3, delay });
+    },
+    wind(v = 0.12) {
+      noise({ f0: 250, f1: 1100, q: 2.5, dur: 0.7, vol: v * 2.5, attack: 0.35, echo: 0.4, pan: -0.4 });
+      noise({ f0: 900, f1: 220, q: 2.5, dur: 0.8, vol: v * 2.5, attack: 0.3, echo: 0.4, delay: 0.5, pan: 0.4 });
+    },
+    rustle(v = 0.12, n = 5) { // leaves and bushes
+      for (let i = 0; i < n; i++) noise({ f0: 2000 + Math.random() * 2500, q: 0.8, dur: 0.06, vol: v * (0.9 + Math.random() * 0.9), delay: i * 0.07, echo: 0.2, pan: (Math.random() - 0.5) * 0.6 });
+    },
+    blub(v = 0.14, n = 6, gap = 0.12) { // bubbles rising in a pot
+      for (let i = 0; i < n; i++) tone("sine", 200 + Math.random() * 250, 560 + Math.random() * 420, 0.06, v, i * gap + Math.random() * 0.03);
+    },
+    splash(f, v = 0.25) { // something plops into the cauldron
+      noise({ type: "lowpass", f0: 3600, f1: 500, q: 0.7, dur: 0.35, vol: v * 0.8, attack: 0.01 });
+      tone("sine", f * 2, f * 0.6, 0.22, v);
+      fx.blub(v * 0.55, 3, 0.08);
+    },
+    poof(v = 0.25) { // magic smoke and a twinkle
+      noise({ f0: 400, f1: 3200, q: 0.8, dur: 0.38, vol: v, attack: 0.03, echo: 0.6 });
+      tone("triangle", 523, 1046, 0.35, v * 0.6, 0.2);
+      fx.sparkle(v * 0.55, 4, 0.25);
+    },
+    ding(f, v = 0.2, dur = 0.4) { // a clear bell
+      tone("triangle", f, f, dur, v);
+      tone("sine", f * 2.76, f * 2.76, dur * 0.5, v * 0.18);
+    },
+    fanfare(notes, v = 0.22, mult = 1, step = 0.1) { // a tiny brass band, with harmony, bass and a cymbal shimmer
+      const last = notes.length - 1, end = last * step;
+      notes.forEach((f, i) => { if (i < last) { tone("triangle", f * mult, f * mult, 0.18, v, i * step); tone("sine", f * mult * 0.75, f * mult * 0.75, 0.16, v * 0.3, i * step); } });
+      const top = notes[last] * mult;
+      [1, 1.26, 1.5].forEach((k, j) => tone("triangle", top * k / (j ? 2 : 1), top * k / (j ? 2 : 1), 0.85, v * (j ? 0.5 : 1), end, 4, 5.5));
+      tone("sine", notes[0] * mult / 2, notes[0] * mult / 2, 0.6, v * 0.6, end);
+      noise({ type: "highpass", f0: 7000, dur: 0.9, vol: v * 0.3, attack: 0.01, delay: end, echo: 1 });
+      fx.sparkle(v * 0.55, 4, end + 0.12);
+    },
+  };
+  return fx;
+})();
+</script>
 <div class="moon" aria-hidden="true"><i></i></div>
 <svg class="patdefs" aria-hidden="true"><defs id="patDefs"></defs></svg>
 
@@ -344,7 +619,12 @@ button:focus-visible { outline: 4px solid var(--moon); outline-offset: 3px; }
     white:  { name: "Ghosty", body: "#f3efe6", rib: "#cfc6b4" },
     pink:   { name: "Pink",   body: "#ff8fc8", rib: "#e05f9f" },
     blue:   { name: "Blue",   body: "#5fb8ff", rib: "#2f86d0" },
+    gold:   { name: "Gold",   body: "#ffcf3f", rib: "#d79c00" },
+    red:    { name: "Red",    body: "#ff5a4f", rib: "#c8302a" },
+    rainbow: { name: "Rainbow", body: "url(#pk-rainbow)", rib: "#8a4fd8" },
   };
+  const RAINBOW = `<linearGradient id="pk-rainbow" gradientUnits="userSpaceOnUse" x1="25" y1="0" x2="375" y2="0"><stop offset="0" stop-color="#ff5a5a"/><stop offset=".2" stop-color="#ffa53b"/><stop offset=".4" stop-color="#ffe14d"/><stop offset=".6" stop-color="#6ee07a"/><stop offset=".8" stop-color="#5fb8ff"/><stop offset="1" stop-color="#b47cff"/></linearGradient>`;
+  const spiral = (x, y) => { let d = ""; for (let i = 0; i <= 40; i++) { const a = i / 40 * Math.PI * 5, r = 2 + i * .62; d += (i ? " L" : "M") + (x + Math.cos(a) * r).toFixed(1) + " " + (y + Math.sin(a) * r).toFixed(1); } return `<path class="carve-line" d="${d}" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>`; };
 
   // underpants: one shape, six prints (patterns live once in #patDefs)
   const PANTS_PATH = "M116 316 L284 316 L288 338 C268 350 252 360 242 386 L222 388 C214 372 207 364 200 364 C193 364 186 372 178 388 L158 386 C148 360 132 350 112 338 Z";
@@ -354,9 +634,12 @@ button:focus-visible { outline: 4px solid var(--moon); outline-offset: 3px; }
     pumpkin: { name: "Pumpkins", pat: `<pattern id="pp-pumpkin" width="26" height="26" patternUnits="userSpaceOnUse"><rect width="26" height="26" fill="#6b3fa0"/><circle cx="13" cy="15" r="6.5" fill="#ff8a1f"/><rect x="12" y="5" width="3" height="5" fill="#9cf26b"/></pattern>` },
     hearts:  { name: "Hearts",  pat: `<pattern id="pp-hearts" width="26" height="26" patternUnits="userSpaceOnUse"><rect width="26" height="26" fill="#fff"/><path transform="translate(13 13) scale(.32)" d="M0 22 C-30 2 -26 -24 0 -10 C26 -24 30 2 0 22 Z" fill="#ff3b6b"/></pattern>` },
     stars:   { name: "Stars",   pat: `<pattern id="pp-stars" width="24" height="24" patternUnits="userSpaceOnUse"><rect width="24" height="24" fill="#24306e"/><path d="M12 4 L14 10 L20 12 L14 14 L12 20 L10 14 L4 12 L10 10 Z" fill="#ffd23f"/></pattern>` },
+    rainbow: { name: "Rainbow", pat: `<pattern id="pp-rainbow" width="30" height="30" patternUnits="userSpaceOnUse">${["#ff5a5a", "#ffa53b", "#ffe14d", "#6ee07a", "#5fb8ff", "#b47cff"].map((c, i) => `<rect y="${i * 5}" width="30" height="5" fill="${c}"/>`).join("")}</pattern>` },
+    ghosts:  { name: "Ghosts",  pat: `<pattern id="pp-ghosts" width="26" height="26" patternUnits="userSpaceOnUse"><rect width="26" height="26" fill="#ff8a1f"/><path d="M7 20 L7 11 a6 6 0 0 1 12 0 L19 20 l-2 -2 l-2 2 l-2 -2 l-2 2 l-2 -2 Z" fill="#fff"/><circle cx="11" cy="12" r="1.4" fill="#222"/><circle cx="15" cy="12" r="1.4" fill="#222"/></pattern>` },
+    sweets:  { name: "Sweeties", pat: `<pattern id="pp-sweets" width="28" height="28" patternUnits="userSpaceOnUse"><rect width="28" height="28" fill="#b6f0ff"/><circle cx="14" cy="14" r="5" fill="#ff5fa2"/><path d="M9 14 L3 10 L3 18 Z M19 14 L25 10 L25 18 Z" fill="#ff5fa2"/><path d="M12 11 L16 17" stroke="#fff" stroke-width="1.6"/></pattern>` },
     bats:    { name: "Bats",    pat: `<pattern id="pp-bats" width="26" height="26" patternUnits="userSpaceOnUse"><rect width="26" height="26" fill="#9cf26b"/><path d="M13 10 C10 6 5 6 3 8 C6 9 6 11 5 13 C8 11 11 12 13 14 C15 12 18 11 21 13 C20 11 20 9 23 8 C21 6 16 6 13 10Z" fill="#4b2c80"/></pattern>` },
   };
-  $("patDefs").innerHTML = Object.values(PRINTS).map(p => p.pat).join("");
+  $("patDefs").innerHTML = Object.values(PRINTS).map(p => p.pat).join("") + RAINBOW;
   const pantsSvg = (k) => `<g transform="translate(0 12)"><path d="${PANTS_PATH}" fill="url(#pp-${k})" stroke="#2a1a40" stroke-width="4" stroke-linejoin="round"/><rect x="113" y="309" width="174" height="16" rx="7" fill="#fff6e6" stroke="#2a1a40" stroke-width="4"/></g>`;
   const PANTS_VIEW = "104 310 192 100";
 
@@ -369,6 +652,9 @@ button:focus-visible { outline: 4px solid var(--moon); outline-offset: 3px; }
       hearts:   { name: "Love",     svg: two((x, y) => heart(x, y)) },
       stars:    { name: "Stars",    svg: two((x, y) => star(x, y)) },
       one:      { name: "One eye",  svg: googly(200, 200, 46) },
+      sleepy:   { name: "Sleepy",   svg: two((x, y) => `<path class="carve-line" d="M${x - 24} ${y - 4} Q${x} ${y + 20} ${x + 24} ${y - 4}" stroke-width="10" stroke-linecap="round"/><path class="carve-line" d="M${x - 15} ${y + 9} l-6 10 M${x} ${y + 12} l0 11 M${x + 15} ${y + 9} l6 10" stroke-width="5" stroke-linecap="round"/>`) },
+      dizzy:    { name: "Dizzy",    svg: two((x, y) => spiral(x, y)) },
+      winky:    { name: "Winky",    svg: googly(EL, EY) + `<path class="carve-line" d="M${ER - 24} ${EY} Q${ER} ${EY + 16} ${ER + 24} ${EY}" stroke-width="10" stroke-linecap="round"/>` },
     }},
     { id: "nose", icon: "👃", label: "Nose", view: "130 205 140 90", options: {
       tri:    { name: "Pointy", svg: `<polygon class="carve" points="184,264 216,264 200,234"/>` },
@@ -376,6 +662,9 @@ button:focus-visible { outline: 4px solid var(--moon); outline-offset: 3px; }
       pig:    { name: "Piggy",  svg: `<ellipse cx="200" cy="250" rx="28" ry="19" fill="#ffb3cf" stroke="#e0789f" stroke-width="4"/><ellipse cx="191" cy="250" rx="5" ry="8" fill="#7a2b46"/><ellipse cx="209" cy="250" rx="5" ry="8" fill="#7a2b46"/>` },
       button: { name: "Button", svg: `<circle class="carve" cx="200" cy="250" r="10"/>` },
       heart:  { name: "Heart",  svg: heart(200, 250, .7) },
+      mouse:  { name: "Mouse",  svg: `<path d="M138 244 L180 252 M136 262 L180 258 M262 244 L220 252 M264 262 L220 258" stroke="#3b2412" stroke-width="3" stroke-linecap="round"/><path d="M184 242 L216 242 L200 262 Z" fill="#ff9fc7" stroke="#c2375a" stroke-width="3" stroke-linejoin="round"/>` },
+      star:   { name: "Star",   svg: star(200, 250, 24, 10) },
+      beak:   { name: "Beak",   svg: `<path d="M176 238 L224 238 L200 274 Z" fill="#ffd23f" stroke="#b88400" stroke-width="4" stroke-linejoin="round"/><path d="M182 246 L218 246" stroke="#b88400" stroke-width="3"/>` },
       carrot: { name: "Carrot", svg: `<path d="M190 240 L250 252 L190 262 Z" fill="#ff7b1c" stroke="#c4520a" stroke-width="3" stroke-linejoin="round"/><path d="M196 245 l6 3 M196 256 l7 -2" stroke="#c4520a" stroke-width="2"/>` },
     }},
     { id: "mouth", icon: "👄", label: "Mouth", view: "110 255 180 110", options: {
@@ -384,6 +673,9 @@ button:focus-visible { outline: 4px solid var(--moon); outline-offset: 3px; }
       ooh:    { name: "Ooh!",    svg: `<ellipse class="carve" cx="200" cy="305" rx="22" ry="28"/>` },
       tongue: { name: "Silly",   svg: `<path class="carve" d="M145 292 Q200 350 255 292 Q200 314 145 292 Z"/><ellipse cx="212" cy="322" rx="17" ry="15" fill="#ff6f91" stroke="#c2375a" stroke-width="3"/>` },
       fangs:  { name: "Vampire", svg: `<path class="carve" d="M135 290 Q200 352 265 290 Q200 316 135 290 Z"/><polygon points="170,302 184,305 177,322" fill="#fff"/><polygon points="216,305 230,302 223,322" fill="#fff"/>` },
+      tooth:  { name: "One tooth", svg: `<path class="carve" d="M135 290 Q200 352 265 290 Q200 316 135 290 Z"/><rect x="189" y="301" width="22" height="20" rx="4" fill="#fff" stroke="#d9d2c4" stroke-width="2"/>` },
+      kissy:  { name: "Kissy",   svg: `<path d="M170 305 C178 289 196 291 200 299 C204 291 222 289 230 305 C219 324 181 324 170 305 Z" fill="#ff4f8b" stroke="#b8235a" stroke-width="4" stroke-linejoin="round"/><path d="M173 305 Q200 313 227 305" stroke="#b8235a" stroke-width="3" fill="none"/>` },
+      zigzag: { name: "Zigzag",  svg: `<path class="carve" d="M130 292 L155 312 L178 294 L200 314 L222 294 L245 312 L270 292 L270 304 L245 326 L222 308 L200 328 L178 308 L155 326 L130 304 Z"/>` },
       wavy:   { name: "Wobbly",  svg: `<path class="carve-line" d="M140 305 q15 -14 30 0 t30 0 t30 0 t30 0" stroke-width="10" stroke-linecap="round"/>` },
     }},
     { id: "hat", icon: "🎩", label: "Hat", view: "40 -40 320 190", options: {
@@ -392,6 +684,9 @@ button:focus-visible { outline: 4px solid var(--moon); outline-offset: 3px; }
       top:   { name: "Top hat", svg: `<rect x="150" y="22" width="100" height="100" rx="6" fill="#2a2a2a"/><rect x="150" y="92" width="100" height="18" fill="#ff8a1f"/><ellipse cx="200" cy="124" rx="96" ry="14" fill="#1d1d1d"/>` },
       crown: { name: "Crown", svg: `<path d="M140 128 L140 58 L170 90 L200 40 L230 90 L260 58 L260 128 Z" fill="#ffd23f" stroke="#c99a00" stroke-width="4" stroke-linejoin="round"/><circle cx="200" cy="105" r="10" fill="#ff3b6b"/><circle cx="165" cy="110" r="7" fill="#4fc3f7"/><circle cx="235" cy="110" r="7" fill="#9cf26b"/>` },
       bow:   { name: "Bow", svg: `<path d="M250 112 L210 88 L214 136 Z M250 112 L292 90 L288 136 Z" fill="#ff5fa2" stroke="#c2306f" stroke-width="3" stroke-linejoin="round"/><circle cx="250" cy="112" r="12" fill="#ff8cc0" stroke="#c2306f" stroke-width="3"/>` },
+      pirate: { name: "Pirate", svg: `<path d="M108 128 C126 62 168 44 200 44 C232 44 274 62 292 128 C250 112 150 112 108 128 Z" fill="#2a2235" stroke="#140f2e" stroke-width="4" stroke-linejoin="round"/><path d="M118 118 C160 106 240 106 282 118" stroke="#ffd23f" stroke-width="5" fill="none"/><path d="M186 96 L214 76 M214 96 L186 76" stroke="#fff6e6" stroke-width="6" stroke-linecap="round"/><circle cx="200" cy="74" r="13" fill="#fff6e6"/><circle cx="195" cy="72" r="3" fill="#2a2235"/><circle cx="205" cy="72" r="3" fill="#2a2235"/><path d="M194 79 q6 5 12 0" stroke="#2a2235" stroke-width="2.5" fill="none" stroke-linecap="round"/>` },
+      bunny:  { name: "Bunny ears", svg: `<g fill="#fff6f0" stroke="#c9a9b8" stroke-width="4"><ellipse cx="166" cy="58" rx="24" ry="70" transform="rotate(-12 166 58)"/><ellipse cx="234" cy="58" rx="24" ry="70" transform="rotate(12 234 58)"/></g><ellipse cx="166" cy="62" rx="11" ry="50" transform="rotate(-12 166 62)" fill="#ffb3cf"/><ellipse cx="234" cy="62" rx="11" ry="50" transform="rotate(12 234 62)" fill="#ffb3cf"/>` },
+      chef:   { name: "Chef", svg: `<path d="M150 128 L150 82 C118 82 112 40 140 32 C146 2 186 -4 200 16 C214 -4 254 2 260 32 C288 40 282 82 250 82 L250 128 Z" fill="#fff" stroke="#b9b2c9" stroke-width="4" stroke-linejoin="round"/><path d="M150 108 L250 108" stroke="#b9b2c9" stroke-width="3"/>` },
       cat:   { name: "Cat ears", svg: `<path d="M120 150 L130 60 L190 125 Z M280 150 L270 60 L210 125 Z" fill="#2a2235"/><path d="M135 132 L140 85 L172 120 Z M265 132 L260 85 L228 120 Z" fill="#ff9fc7"/>` },
     }},
     { id: "pants", icon: "🩲", label: "Pants", view: "90 282 220 130", options: {
@@ -404,6 +699,9 @@ button:focus-visible { outline: 4px solid var(--moon); outline-offset: 3px; }
       cheeks:    { name: "Rosy",      svg: `<ellipse cx="112" cy="262" rx="24" ry="15" fill="#ff5f8f" opacity=".6"/><ellipse cx="288" cy="262" rx="24" ry="15" fill="#ff5f8f" opacity=".6"/>` },
       bowtie:    { name: "Bow tie",   svg: `<path d="M200 300 L160 280 L160 320 Z M200 300 L240 280 L240 320 Z" transform="translate(0 50)" fill="#e0245e" stroke="#9c1240" stroke-width="3" stroke-linejoin="round"/><circle cx="200" cy="350" r="11" fill="#ff5f8f" stroke="#9c1240" stroke-width="3"/>` },
       freckles:  { name: "Freckles",  svg: [[112,258],[124,270],[102,272],[118,282],[288,258],[276,270],[298,272],[282,282]].map(([x, y]) => `<circle cx="${x}" cy="${y}" r="4.5" fill="#8a3a0a"/>`).join("") },
+      shades:    { name: "Cool shades", svg: `<path d="M102 188 L194 188 L188 226 C184 240 118 240 110 226 Z M206 188 L298 188 L290 226 C282 240 216 240 212 226 Z" fill="#1d1d2e" stroke="#000" stroke-width="5" stroke-linejoin="round"/><path d="M194 195 L206 195" stroke="#000" stroke-width="7"/><path d="M118 198 L142 198 M222 198 L246 198" stroke="#fff" stroke-width="5" stroke-linecap="round" opacity=".7"/>` },
+      spider:    { name: "Spider pal", svg: `<path d="M302 120 L302 172" stroke="#e9e3ff" stroke-width="2.5"/><g stroke="#2a2235" stroke-width="4.5" fill="none" stroke-linecap="round"><path d="M290 180 q-14 -12 -22 -2 M288 188 q-16 -2 -22 8 M290 196 q-12 6 -14 18 M296 200 q-4 10 -2 20 M314 180 q14 -12 22 -2 M316 188 q16 -2 22 8 M314 196 q12 6 14 18 M308 200 q4 10 2 20"/></g><circle cx="302" cy="188" r="17" fill="#3a2f4d" stroke="#2a2235" stroke-width="3"/><circle cx="295" cy="184" r="6" fill="#fff"/><circle cx="309" cy="184" r="6" fill="#fff"/><circle cx="296" cy="186" r="2.6" fill="#222"/><circle cx="310" cy="186" r="2.6" fill="#222"/><path d="M296 195 q6 5 12 0" stroke="#ff9fc7" stroke-width="2.5" fill="none" stroke-linecap="round"/>` },
+      sparkly:   { name: "Sparkles", svg: star(96, 168, 16, 7) + star(306, 158, 13, 6) + star(112, 330, 12, 5) + star(296, 322, 17, 7) + star(84, 250, 9, 4) },
       bat:       { name: "Bat buddy", svg: "" },
     }},
   ];
@@ -459,29 +757,21 @@ button:focus-visible { outline: 4px solid var(--moon); outline-offset: 3px; }
   // ---------- Audio and voice ----------
   let ac = null;
   function audio() {
-    if (!ac) { try { ac = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { ac = null; } }
+    if (!ac) { try { ac = KIT.ctx(); } catch (e) { ac = null; } }
     if (ac && ac.state === "suspended") ac.resume().catch(() => {});
     return ac;
   }
-  function tone(type, f0, f1, dur, vol, delay = 0, vibrato = 0) {
-    const a = ac; if (!a) return;
-    const t = a.currentTime + delay;
-    const o = a.createOscillator(), g = a.createGain();
-    o.type = type; o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(f1, t + dur);
-    if (vibrato) { const l = a.createOscillator(), lg = a.createGain(); l.frequency.value = 7; lg.gain.value = vibrato; l.connect(lg).connect(o.frequency); l.start(t); l.stop(t + dur + .05); }
-    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + 0.015); g.gain.exponentialRampToValueAtTime(0.001, t + dur);
-    o.connect(g).connect(a.destination); o.start(t); o.stop(t + dur + .05);
-  }
+  function tone(type, f0, f1, dur, vol, delay = 0, vib = 0) { KIT.tone(type, f0, f1, dur, vol, delay, vib); }
   const SLOT_PITCH = { colour: 0.7, hat: 0.85, pants: 0.75, eyes: 1, nose: 1.2, mouth: 1.1, extra: 1.35 };
-  const boing = (slot, vol = .32) => { const m = SLOT_PITCH[slot] || 1; tone("sine", 160 * m, 520 * m, .16, vol); tone("sine", 520 * m, 300 * m, .12, vol * .6, .15); };
+  const boing = (slot, vol = .32) => { const m = SLOT_PITCH[slot] || 1; KIT.boing(160 * m, vol); };
   function tada() {
-    [392, 523, 659, 784].forEach((f, i) => tone("triangle", f, f, i === 3 ? .7 : .16, .25, i * .1));
+    KIT.fanfare([392, 523, 659, 784], .25);
     tone("sine", 620, 260, .9, .18, .55, 25);
   }
-  const whoosh = () => tone("sawtooth", 900, 120, .5, .08);
-  const wind = () => { tone("sawtooth", 200, 900, .6, .05, 0, 40); tone("sawtooth", 700, 150, .7, .05, .5, 40); };
+  const whoosh = () => KIT.whoosh(.22, false, .5);
+  const wind = () => KIT.wind(.18);
   const squeak = () => { tone("square", 1800, 2600, .05, .08); tone("square", 2000, 2900, .05, .08, .09); tone("square", 1900, 2700, .05, .08, .18); };
-  const rustle = () => { for (let i = 0; i < 5; i++) tone("sawtooth", 300 + Math.random() * 300, 120, .07, .06, i * .07); };
+  const rustle = () => KIT.rustle(.16, 5);
   const wah = () => tone("sine", 500, 180, .7, .25, 0, 18);
 
   let voices = [];

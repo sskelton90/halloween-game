@@ -81,8 +81,140 @@ body.phone .faces { font-size: 3.6rem; }
 }
 @media (prefers-reduced-motion: reduce) { .game { transition: none; } }
 </style>
+<style id="kit-css">
+/* ===== Storybook night kit: shared look for every game =====
+   Layout: painted sky, glowing moon, rolling outlined hills and drifting fog behind each game;
+   chunky ink-outlined stickers for anything you tap. Only opacity and transform ever animate. */
+:root {
+  --night: #17123a;
+  --dusk: #2c2464;
+  --glow: #5a4a92;
+  --moon: #fff0c2;
+  --candy: #ff9a3c;
+  --slime: #a8e483;
+  --ink: #140f2e;
+  --text: #fff4e2;
+  --paper: #fff4e2;
+  --hill-back: #2c3266;
+  --hill-front: #2f5631;
+  --glass: rgba(255, 240, 220, 0.13);
+  --glass-line: rgba(255, 240, 220, 0.38);
+  --hill: 11vh;
+  --wobble: 30px 24px 32px 22px / 24px 32px 22px 30px;
+  --outline: .045em 0 0 var(--ink), -.045em 0 0 var(--ink), 0 .045em 0 var(--ink), 0 -.045em 0 var(--ink),
+             .032em .032em 0 var(--ink), -.032em .032em 0 var(--ink), .032em -.032em 0 var(--ink), -.032em -.032em 0 var(--ink),
+             0 .1em 0 var(--ink);
+}
+body { background: var(--night); }
+
+/* Painted sky with a little paper grain */
+.sky {
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 .95 0 0 0 0 .85 0 0 0 .07 0'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)'/%3E%3C/svg%3E"),
+    radial-gradient(55% 45% at 76% 6%, rgba(255, 240, 194, .16), transparent 70%),
+    radial-gradient(90% 40% at 50% 100%, rgba(255, 170, 110, .14), transparent 70%),
+    linear-gradient(180deg, #120e30 0%, var(--night) 22%, var(--dusk) 60%, var(--glow) 100%);
+}
+
+/* Twinkling storybook stars (two layers that breathe out of step) */
+.kit-stars { position: fixed; inset: 0 0 30% 0; z-index: 0; pointer-events: none;
+  -webkit-mask-image: linear-gradient(180deg, #000 55%, transparent); mask-image: linear-gradient(180deg, #000 55%, transparent); }
+.kit-stars i { position: absolute; inset: 0; background-repeat: repeat; will-change: opacity; }
+.kit-stars i:first-child {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='640' height='420'%3E%3Cg fill='%23fff3d2'%3E%3Ccircle cx='12' cy='50' r='1.3'/%3E%3Ccircle cx='93' cy='22' r='0.8'/%3E%3Ccircle cx='342' cy='297' r='1.0'/%3E%3Ccircle cx='97' cy='309' r='0.8'/%3E%3Ccircle cx='90' cy='225' r='1.3'/%3E%3Ccircle cx='336' cy='88' r='1.6'/%3E%3Ccircle cx='63' cy='12' r='1.3'/%3E%3Ccircle cx='220' cy='89' r='1.3'/%3E%3Ccircle cx='235' cy='398' r='1.0'/%3E%3Ccircle cx='462' cy='176' r='1.6'/%3E%3Ccircle cx='42' cy='25' r='1.0'/%3E%3Ccircle cx='229' cy='88' r='1.3'/%3E%3Ccircle cx='23' cy='307' r='1.3'/%3E%3Ccircle cx='416' cy='94' r='1.3'/%3E%3Ccircle cx='465' cy='84' r='1.0'/%3E%3Ccircle cx='309' cy='113' r='1.1'/%3E%3Ccircle cx='215' cy='167' r='1.1'/%3E%3Ccircle cx='612' cy='406' r='0.8'/%3E%3Ccircle cx='503' cy='130' r='1.0'/%3E%3Ccircle cx='358' cy='390' r='1.1'/%3E%3Ccircle cx='63' cy='83' r='1.6'/%3E%3Ccircle cx='241' cy='398' r='1.3'/%3E%3Ccircle cx='184' cy='130' r='1.0'/%3E%3Ccircle cx='76' cy='87' r='1.1'/%3E%3Ccircle cx='285' cy='329' r='1.6'/%3E%3Ccircle cx='455' cy='114' r='0.8'/%3E%3Cpath transform='translate%28604 92%29 scale%280.7%29' d='M0-9q1 6 2.2 6.8Q8 0 9 0q-6 1-6.8 2.2Q0 8 0 9q-1-6-2.2-6.8Q-8 0-9 0q6-1 6.8-2.2Q0-8 0-9z' stroke='%23140f2e' stroke-width='1.3'/%3E%3Cpath transform='translate%28451 350%29 scale%280.9%29' d='M0-9q1 6 2.2 6.8Q8 0 9 0q-6 1-6.8 2.2Q0 8 0 9q-1-6-2.2-6.8Q-8 0-9 0q6-1 6.8-2.2Q0-8 0-9z' stroke='%23140f2e' stroke-width='1.3'/%3E%3Cpath transform='translate%2848 254%29 scale%281.1%29' d='M0-9q1 6 2.2 6.8Q8 0 9 0q-6 1-6.8 2.2Q0 8 0 9q-1-6-2.2-6.8Q-8 0-9 0q6-1 6.8-2.2Q0-8 0-9z' stroke='%23140f2e' stroke-width='1.3'/%3E%3C/g%3E%3C/svg%3E");
+  animation: kit-twinkle 3.2s ease-in-out infinite alternate; }
+.kit-stars i:last-child {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='770' height='510'%3E%3Cg fill='%23fff8e4'%3E%3Ccircle cx='216' cy='191' r='1.6'/%3E%3Ccircle cx='378' cy='301' r='0.8'/%3E%3Ccircle cx='374' cy='404' r='1.6'/%3E%3Ccircle cx='532' cy='493' r='0.8'/%3E%3Ccircle cx='198' cy='388' r='1.3'/%3E%3Ccircle cx='270' cy='10' r='1.3'/%3E%3Ccircle cx='448' cy='228' r='0.8'/%3E%3Ccircle cx='105' cy='289' r='1.6'/%3E%3Ccircle cx='42' cy='312' r='1.0'/%3E%3Ccircle cx='605' cy='479' r='1.1'/%3E%3Ccircle cx='529' cy='282' r='1.6'/%3E%3Ccircle cx='534' cy='267' r='1.6'/%3E%3Ccircle cx='310' cy='267' r='1.6'/%3E%3Ccircle cx='356' cy='364' r='1.3'/%3E%3Ccircle cx='252' cy='191' r='1.6'/%3E%3Ccircle cx='601' cy='378' r='1.1'/%3E%3Ccircle cx='530' cy='295' r='1.0'/%3E%3Ccircle cx='36' cy='339' r='1.3'/%3E%3Ccircle cx='162' cy='127' r='1.1'/%3E%3Ccircle cx='160' cy='451' r='1.1'/%3E%3Ccircle cx='417' cy='126' r='1.1'/%3E%3Ccircle cx='564' cy='419' r='0.8'/%3E%3Cpath transform='translate%28364 414%29 scale%280.9%29' d='M0-9q1 6 2.2 6.8Q8 0 9 0q-6 1-6.8 2.2Q0 8 0 9q-1-6-2.2-6.8Q-8 0-9 0q6-1 6.8-2.2Q0-8 0-9z' stroke='%23140f2e' stroke-width='1.3'/%3E%3Cpath transform='translate%28205 110%29 scale%281.1%29' d='M0-9q1 6 2.2 6.8Q8 0 9 0q-6 1-6.8 2.2Q0 8 0 9q-1-6-2.2-6.8Q-8 0-9 0q6-1 6.8-2.2Q0-8 0-9z' stroke='%23140f2e' stroke-width='1.3'/%3E%3C/g%3E%3C/svg%3E");
+  opacity: .35; animation: kit-twinkle 4.4s ease-in-out -2s infinite alternate-reverse; }
+@keyframes kit-twinkle { from { opacity: 1; } to { opacity: .3; } }
+
+/* Rolling hand-drawn hills */
+.kit-land { position: fixed; left: 0; right: 0; bottom: 0; height: var(--hill); z-index: 0; pointer-events: none;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 200' preserveAspectRatio='none'%3E%3Cpath d='M-10 62C90 18 210 6 330 40S520 96 640 58 860 4 990 34 1150 70 1210 44V210H-10Z' fill='%232c3266' stroke='%23140f2e' stroke-width='5' vector-effect='non-scaling-stroke'/%3E%3Cpath d='M-10 120C150 72 330 70 520 104S860 150 1010 100 1170 84 1210 92V210H-10Z' fill='%232f5631' stroke='%23140f2e' stroke-width='6' vector-effect='non-scaling-stroke'/%3E%3Cpath d='M-10 170C250 140 520 150 760 168S1100 176 1210 160V210H-10Z' fill='%23284a2b'/%3E%3C/svg%3E") bottom center / max(100%, 1100px) 100% no-repeat; }
+body.on-pad .kit-land { height: 8vh; }
+
+/* Drifting fog along the ground */
+.kit-fog { position: fixed; left: 0; right: 0; bottom: 0; height: 30vh; z-index: 0; pointer-events: none; overflow: hidden; }
+.kit-fog i { position: absolute; bottom: -4vh; left: -50vw; width: 200vw; height: 100%; will-change: transform;
+  background:
+    radial-gradient(18% 34% at 12% 70%, rgba(222, 214, 255, .16), transparent 70%),
+    radial-gradient(22% 30% at 38% 82%, rgba(222, 214, 255, .13), transparent 70%),
+    radial-gradient(16% 36% at 63% 74%, rgba(222, 214, 255, .15), transparent 70%),
+    radial-gradient(24% 30% at 88% 84%, rgba(222, 214, 255, .12), transparent 70%);
+  animation: kit-drift 46s ease-in-out infinite alternate; }
+.kit-fog i:last-child { bottom: -10vh; animation-duration: 64s; animation-direction: alternate-reverse; opacity: .8; }
+@keyframes kit-drift { from { transform: translate3d(-18vw, 0, 0); } to { transform: translate3d(18vw, 0, 0); } }
+
+/* The moon: chunky outline and a soft halo */
+.moon { border: max(3px, .55vmin) solid var(--ink);
+  box-shadow: 0 0 0 1.6vmin rgba(255, 240, 194, .09), 0 0 0 4vmin rgba(255, 240, 194, .05), 0 0 9vmin 3vmin rgba(255, 240, 194, .22); }
+.moon::before, .moon::after { background: var(--ink); }
+.moon i { border-bottom-color: var(--ink); }
+html body.on-screen .moon { display: block; width: min(12vmin, 110px); top: calc(1.2vh + env(safe-area-inset-top, 0px)); right: clamp(160px, 20vw, 320px); }
+
+/* Storybook lettering: ink-outlined display type */
+:is(.home h1, .brand, h2, .prizes h2) { text-shadow: var(--outline); letter-spacing: .01em; }
+.home h1 { text-shadow: var(--outline), 0 .14em 0 rgba(0, 0, 0, .25); }
+
+/* Chunky stickers for everything you tap */
+.choice { background: var(--paper); color: var(--ink); border: 4px solid var(--ink); border-radius: var(--wobble);
+  box-shadow: 0 7px 0 var(--ink), 0 12px 24px rgba(0, 0, 0, .25); }
+.choice small { opacity: .75; }
+.choice:nth-child(2) { border-radius: 24px 32px 22px 30px / 30px 22px 32px 24px; }
+.start button { border: 4px solid var(--ink); border-radius: 999px 900px 999px 940px; box-shadow: 0 8px 0 var(--ink), 0 14px 30px rgba(0, 0, 0, .3); }
+.pick { border: 4px solid var(--ink); border-radius: var(--wobble); box-shadow: inset 0 -10px 0 rgba(0, 0, 0, .16), 0 6px 0 var(--ink); }
+.pick:nth-child(odd) { border-radius: 24px 32px 22px 30px / 30px 22px 32px 24px; }
+.bigbtn { border: max(5px, 1.1vmin) solid var(--ink); box-shadow: inset 0 -18px 0 rgba(0, 0, 0, .18), 0 12px 0 var(--ink), 0 22px 40px rgba(0, 0, 0, .3); }
+.bigbtn.press { box-shadow: inset 0 -8px 0 rgba(0, 0, 0, .18), 0 4px 0 var(--ink); }
+.hint { border: 2px solid var(--glass-line); outline: 2px dashed rgba(255, 240, 220, .22); outline-offset: -7px; }
+.start { background: rgba(20, 15, 46, .55); }
+
+/* Storybook pages and badges (each rule only lands where a game has that piece) */
+.card { background: linear-gradient(180deg, #fff8ea, #f6e6c8); color: var(--ink); border: 5px solid var(--ink); border-radius: var(--wobble);
+  box-shadow: 0 10px 0 var(--ink), 0 22px 50px rgba(0, 0, 0, .35); }
+.card h2 { color: var(--candy); }
+.speech, .bubble, .say { border-radius: 26px 20px 28px 18px / 20px 28px 18px 26px; box-shadow: 0 6px 0 var(--ink); }
+.lane { box-shadow: 0 0 0 .45vh var(--ink), 0 .9vh 0 .45vh var(--ink); }
+.jar, .feeder, .tummy, .book, .score.on, .prize, .sign { box-shadow: 0 0 0 .35vh var(--ink), 0 .6vh 0 .35vh var(--ink); }
+
+/* Phone buttons become chunky stickers */
+:is(.pad, .pad-view) button:where(:not(.small-btn, .swap, .menu-btn, .games-btn, .bigbtn, [hidden])) { box-shadow: 0 0 0 3px var(--ink), 0 6px 0 3px var(--ink); }
+:is(.pad, .pad-view) button:where(:not(.small-btn, .swap, .menu-btn, .games-btn, .bigbtn)):active { box-shadow: 0 0 0 3px var(--ink), 0 2px 0 3px var(--ink); }
+#joinCard { box-shadow: 0 0 0 3px var(--ink), 0 7px 0 3px var(--ink); }
+#joinCard .jc-qr { box-shadow: 0 0 0 3px var(--ink); }
+
+#statusText { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Calm mode: the TV is struggling, so the backdrop holds still */
+body.kit-calm .kit-stars i, body.kit-calm .kit-fog i { animation-play-state: paused; }
+@media (prefers-reduced-motion: reduce) { .kit-stars i, .kit-fog i { animation: none; } }
+
+:root { --hill: 14vh; --display: "Griffy", "Baloo 2", "Comic Sans MS", cursive; }
+.sky { position: fixed; inset: 0; z-index: 0; }
+body { background: var(--night); }
+body > :not(.sky, .moon, .kit-stars, .kit-land, .kit-fog, script) { position: relative; z-index: 1; }
+.moon { position: fixed; z-index: 0; top: calc(2.5vh + env(safe-area-inset-top, 0px)); right: max(2.5vw, env(safe-area-inset-right, 0px)); color: var(--ink);
+  width: min(11vmin, 110px); aspect-ratio: 1; border-radius: 50%; background: radial-gradient(circle at 38% 35%, #fffbe8, var(--moon) 55%, #f1d98c); }
+.moon::before, .moon::after { content: ""; position: absolute; top: 38%; width: 10%; height: 14%; border-radius: 50%; }
+.moon::before { left: 32%; } .moon::after { right: 32%; }
+.moon i { position: absolute; left: 30%; right: 30%; top: 56%; height: 16%; border-bottom: .5vmin solid; border-radius: 0 0 50% 50%; }
+h1 { text-shadow: var(--outline), 0 .14em 0 rgba(0, 0, 0, .25); }
+.game { background: linear-gradient(180deg, #fff8ea, #f6e6c8); color: var(--ink); border: 4px solid var(--ink); border-radius: var(--wobble);
+  box-shadow: 0 7px 0 var(--ink), 0 14px 28px rgba(0, 0, 0, .28); transform: rotate(-.6deg); }
+.game:nth-child(even) { border-radius: 24px 32px 22px 30px / 30px 22px 32px 24px; transform: rotate(.6deg); }
+.game:active { transform: scale(.96); box-shadow: 0 3px 0 var(--ink); }
+.name { font-family: var(--display); font-weight: 400; color: var(--ink); letter-spacing: .01em; }
+.what { opacity: .8; }
+@media (max-width: 600px) { .moon { width: 64px; top: calc(8px + env(safe-area-inset-top, 0px)); right: max(10px, env(safe-area-inset-right, 0px)); } }
+@media (prefers-reduced-motion: reduce) { .game, .game:nth-child(even) { transform: none; } }
+</style>
 </head>
 <body>
+<div class="sky"></div>
+<div class="kit-stars" aria-hidden="true"><i></i><i></i></div>
+<div class="kit-land" aria-hidden="true"></div>
+<div class="kit-fog" aria-hidden="true"><i></i><i></i></div>
+<div class="moon" aria-hidden="true"><i></i></div>
   <h1>Halloween Party Games</h1>
   <p id="lead">Open a game on the TV and tap Big screen, then scan the QR code with each phone.</p>
   <div class="games">

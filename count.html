@@ -194,10 +194,283 @@ button:focus-visible { outline: 4px solid var(--moon); outline-offset: 3px; }
   .cover { transition: none; }
 }
 </style>
+<style id="kit-css">
+/* ===== Storybook night kit: shared look for every game =====
+   Layout: painted sky, glowing moon, rolling outlined hills and drifting fog behind each game;
+   chunky ink-outlined stickers for anything you tap. Only opacity and transform ever animate. */
+:root {
+  --night: #17123a;
+  --dusk: #2c2464;
+  --glow: #5a4a92;
+  --moon: #fff0c2;
+  --candy: #ff9a3c;
+  --slime: #a8e483;
+  --ink: #140f2e;
+  --text: #fff4e2;
+  --paper: #fff4e2;
+  --hill-back: #2c3266;
+  --hill-front: #2f5631;
+  --glass: rgba(255, 240, 220, 0.13);
+  --glass-line: rgba(255, 240, 220, 0.38);
+  --hill: 11vh;
+  --wobble: 30px 24px 32px 22px / 24px 32px 22px 30px;
+  --outline: .045em 0 0 var(--ink), -.045em 0 0 var(--ink), 0 .045em 0 var(--ink), 0 -.045em 0 var(--ink),
+             .032em .032em 0 var(--ink), -.032em .032em 0 var(--ink), .032em -.032em 0 var(--ink), -.032em -.032em 0 var(--ink),
+             0 .1em 0 var(--ink);
+}
+body { background: var(--night); }
+
+/* Painted sky with a little paper grain */
+.sky {
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 .95 0 0 0 0 .85 0 0 0 .07 0'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)'/%3E%3C/svg%3E"),
+    radial-gradient(55% 45% at 76% 6%, rgba(255, 240, 194, .16), transparent 70%),
+    radial-gradient(90% 40% at 50% 100%, rgba(255, 170, 110, .14), transparent 70%),
+    linear-gradient(180deg, #120e30 0%, var(--night) 22%, var(--dusk) 60%, var(--glow) 100%);
+}
+
+/* Twinkling storybook stars (two layers that breathe out of step) */
+.kit-stars { position: fixed; inset: 0 0 30% 0; z-index: 0; pointer-events: none;
+  -webkit-mask-image: linear-gradient(180deg, #000 55%, transparent); mask-image: linear-gradient(180deg, #000 55%, transparent); }
+.kit-stars i { position: absolute; inset: 0; background-repeat: repeat; will-change: opacity; }
+.kit-stars i:first-child {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='640' height='420'%3E%3Cg fill='%23fff3d2'%3E%3Ccircle cx='12' cy='50' r='1.3'/%3E%3Ccircle cx='93' cy='22' r='0.8'/%3E%3Ccircle cx='342' cy='297' r='1.0'/%3E%3Ccircle cx='97' cy='309' r='0.8'/%3E%3Ccircle cx='90' cy='225' r='1.3'/%3E%3Ccircle cx='336' cy='88' r='1.6'/%3E%3Ccircle cx='63' cy='12' r='1.3'/%3E%3Ccircle cx='220' cy='89' r='1.3'/%3E%3Ccircle cx='235' cy='398' r='1.0'/%3E%3Ccircle cx='462' cy='176' r='1.6'/%3E%3Ccircle cx='42' cy='25' r='1.0'/%3E%3Ccircle cx='229' cy='88' r='1.3'/%3E%3Ccircle cx='23' cy='307' r='1.3'/%3E%3Ccircle cx='416' cy='94' r='1.3'/%3E%3Ccircle cx='465' cy='84' r='1.0'/%3E%3Ccircle cx='309' cy='113' r='1.1'/%3E%3Ccircle cx='215' cy='167' r='1.1'/%3E%3Ccircle cx='612' cy='406' r='0.8'/%3E%3Ccircle cx='503' cy='130' r='1.0'/%3E%3Ccircle cx='358' cy='390' r='1.1'/%3E%3Ccircle cx='63' cy='83' r='1.6'/%3E%3Ccircle cx='241' cy='398' r='1.3'/%3E%3Ccircle cx='184' cy='130' r='1.0'/%3E%3Ccircle cx='76' cy='87' r='1.1'/%3E%3Ccircle cx='285' cy='329' r='1.6'/%3E%3Ccircle cx='455' cy='114' r='0.8'/%3E%3Cpath transform='translate%28604 92%29 scale%280.7%29' d='M0-9q1 6 2.2 6.8Q8 0 9 0q-6 1-6.8 2.2Q0 8 0 9q-1-6-2.2-6.8Q-8 0-9 0q6-1 6.8-2.2Q0-8 0-9z' stroke='%23140f2e' stroke-width='1.3'/%3E%3Cpath transform='translate%28451 350%29 scale%280.9%29' d='M0-9q1 6 2.2 6.8Q8 0 9 0q-6 1-6.8 2.2Q0 8 0 9q-1-6-2.2-6.8Q-8 0-9 0q6-1 6.8-2.2Q0-8 0-9z' stroke='%23140f2e' stroke-width='1.3'/%3E%3Cpath transform='translate%2848 254%29 scale%281.1%29' d='M0-9q1 6 2.2 6.8Q8 0 9 0q-6 1-6.8 2.2Q0 8 0 9q-1-6-2.2-6.8Q-8 0-9 0q6-1 6.8-2.2Q0-8 0-9z' stroke='%23140f2e' stroke-width='1.3'/%3E%3C/g%3E%3C/svg%3E");
+  animation: kit-twinkle 3.2s ease-in-out infinite alternate; }
+.kit-stars i:last-child {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='770' height='510'%3E%3Cg fill='%23fff8e4'%3E%3Ccircle cx='216' cy='191' r='1.6'/%3E%3Ccircle cx='378' cy='301' r='0.8'/%3E%3Ccircle cx='374' cy='404' r='1.6'/%3E%3Ccircle cx='532' cy='493' r='0.8'/%3E%3Ccircle cx='198' cy='388' r='1.3'/%3E%3Ccircle cx='270' cy='10' r='1.3'/%3E%3Ccircle cx='448' cy='228' r='0.8'/%3E%3Ccircle cx='105' cy='289' r='1.6'/%3E%3Ccircle cx='42' cy='312' r='1.0'/%3E%3Ccircle cx='605' cy='479' r='1.1'/%3E%3Ccircle cx='529' cy='282' r='1.6'/%3E%3Ccircle cx='534' cy='267' r='1.6'/%3E%3Ccircle cx='310' cy='267' r='1.6'/%3E%3Ccircle cx='356' cy='364' r='1.3'/%3E%3Ccircle cx='252' cy='191' r='1.6'/%3E%3Ccircle cx='601' cy='378' r='1.1'/%3E%3Ccircle cx='530' cy='295' r='1.0'/%3E%3Ccircle cx='36' cy='339' r='1.3'/%3E%3Ccircle cx='162' cy='127' r='1.1'/%3E%3Ccircle cx='160' cy='451' r='1.1'/%3E%3Ccircle cx='417' cy='126' r='1.1'/%3E%3Ccircle cx='564' cy='419' r='0.8'/%3E%3Cpath transform='translate%28364 414%29 scale%280.9%29' d='M0-9q1 6 2.2 6.8Q8 0 9 0q-6 1-6.8 2.2Q0 8 0 9q-1-6-2.2-6.8Q-8 0-9 0q6-1 6.8-2.2Q0-8 0-9z' stroke='%23140f2e' stroke-width='1.3'/%3E%3Cpath transform='translate%28205 110%29 scale%281.1%29' d='M0-9q1 6 2.2 6.8Q8 0 9 0q-6 1-6.8 2.2Q0 8 0 9q-1-6-2.2-6.8Q-8 0-9 0q6-1 6.8-2.2Q0-8 0-9z' stroke='%23140f2e' stroke-width='1.3'/%3E%3C/g%3E%3C/svg%3E");
+  opacity: .35; animation: kit-twinkle 4.4s ease-in-out -2s infinite alternate-reverse; }
+@keyframes kit-twinkle { from { opacity: 1; } to { opacity: .3; } }
+
+/* Rolling hand-drawn hills */
+.kit-land { position: fixed; left: 0; right: 0; bottom: 0; height: var(--hill); z-index: 0; pointer-events: none;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 200' preserveAspectRatio='none'%3E%3Cpath d='M-10 62C90 18 210 6 330 40S520 96 640 58 860 4 990 34 1150 70 1210 44V210H-10Z' fill='%232c3266' stroke='%23140f2e' stroke-width='5' vector-effect='non-scaling-stroke'/%3E%3Cpath d='M-10 120C150 72 330 70 520 104S860 150 1010 100 1170 84 1210 92V210H-10Z' fill='%232f5631' stroke='%23140f2e' stroke-width='6' vector-effect='non-scaling-stroke'/%3E%3Cpath d='M-10 170C250 140 520 150 760 168S1100 176 1210 160V210H-10Z' fill='%23284a2b'/%3E%3C/svg%3E") bottom center / max(100%, 1100px) 100% no-repeat; }
+body.on-pad .kit-land { height: 8vh; }
+
+/* Drifting fog along the ground */
+.kit-fog { position: fixed; left: 0; right: 0; bottom: 0; height: 30vh; z-index: 0; pointer-events: none; overflow: hidden; }
+.kit-fog i { position: absolute; bottom: -4vh; left: -50vw; width: 200vw; height: 100%; will-change: transform;
+  background:
+    radial-gradient(18% 34% at 12% 70%, rgba(222, 214, 255, .16), transparent 70%),
+    radial-gradient(22% 30% at 38% 82%, rgba(222, 214, 255, .13), transparent 70%),
+    radial-gradient(16% 36% at 63% 74%, rgba(222, 214, 255, .15), transparent 70%),
+    radial-gradient(24% 30% at 88% 84%, rgba(222, 214, 255, .12), transparent 70%);
+  animation: kit-drift 46s ease-in-out infinite alternate; }
+.kit-fog i:last-child { bottom: -10vh; animation-duration: 64s; animation-direction: alternate-reverse; opacity: .8; }
+@keyframes kit-drift { from { transform: translate3d(-18vw, 0, 0); } to { transform: translate3d(18vw, 0, 0); } }
+
+/* The moon: chunky outline and a soft halo */
+.moon { border: max(3px, .55vmin) solid var(--ink);
+  box-shadow: 0 0 0 1.6vmin rgba(255, 240, 194, .09), 0 0 0 4vmin rgba(255, 240, 194, .05), 0 0 9vmin 3vmin rgba(255, 240, 194, .22); }
+.moon::before, .moon::after { background: var(--ink); }
+.moon i { border-bottom-color: var(--ink); }
+html body.on-screen .moon { display: block; width: min(12vmin, 110px); top: calc(1.2vh + env(safe-area-inset-top, 0px)); right: clamp(160px, 20vw, 320px); }
+
+/* Storybook lettering: ink-outlined display type */
+:is(.home h1, .brand, h2, .prizes h2) { text-shadow: var(--outline); letter-spacing: .01em; }
+.home h1 { text-shadow: var(--outline), 0 .14em 0 rgba(0, 0, 0, .25); }
+
+/* Chunky stickers for everything you tap */
+.choice { background: var(--paper); color: var(--ink); border: 4px solid var(--ink); border-radius: var(--wobble);
+  box-shadow: 0 7px 0 var(--ink), 0 12px 24px rgba(0, 0, 0, .25); }
+.choice small { opacity: .75; }
+.choice:nth-child(2) { border-radius: 24px 32px 22px 30px / 30px 22px 32px 24px; }
+.start button { border: 4px solid var(--ink); border-radius: 999px 900px 999px 940px; box-shadow: 0 8px 0 var(--ink), 0 14px 30px rgba(0, 0, 0, .3); }
+.pick { border: 4px solid var(--ink); border-radius: var(--wobble); box-shadow: inset 0 -10px 0 rgba(0, 0, 0, .16), 0 6px 0 var(--ink); }
+.pick:nth-child(odd) { border-radius: 24px 32px 22px 30px / 30px 22px 32px 24px; }
+.bigbtn { border: max(5px, 1.1vmin) solid var(--ink); box-shadow: inset 0 -18px 0 rgba(0, 0, 0, .18), 0 12px 0 var(--ink), 0 22px 40px rgba(0, 0, 0, .3); }
+.bigbtn.press { box-shadow: inset 0 -8px 0 rgba(0, 0, 0, .18), 0 4px 0 var(--ink); }
+.hint { border: 2px solid var(--glass-line); outline: 2px dashed rgba(255, 240, 220, .22); outline-offset: -7px; }
+.start { background: rgba(20, 15, 46, .55); }
+
+/* Storybook pages and badges (each rule only lands where a game has that piece) */
+.card { background: linear-gradient(180deg, #fff8ea, #f6e6c8); color: var(--ink); border: 5px solid var(--ink); border-radius: var(--wobble);
+  box-shadow: 0 10px 0 var(--ink), 0 22px 50px rgba(0, 0, 0, .35); }
+.card h2 { color: var(--candy); }
+.speech, .bubble, .say { border-radius: 26px 20px 28px 18px / 20px 28px 18px 26px; box-shadow: 0 6px 0 var(--ink); }
+.lane { box-shadow: 0 0 0 .45vh var(--ink), 0 .9vh 0 .45vh var(--ink); }
+.jar, .feeder, .tummy, .book, .score.on, .prize, .sign { box-shadow: 0 0 0 .35vh var(--ink), 0 .6vh 0 .35vh var(--ink); }
+
+/* Phone buttons become chunky stickers */
+:is(.pad, .pad-view) button:where(:not(.small-btn, .swap, .menu-btn, .games-btn, .bigbtn, [hidden])) { box-shadow: 0 0 0 3px var(--ink), 0 6px 0 3px var(--ink); }
+:is(.pad, .pad-view) button:where(:not(.small-btn, .swap, .menu-btn, .games-btn, .bigbtn)):active { box-shadow: 0 0 0 3px var(--ink), 0 2px 0 3px var(--ink); }
+#joinCard { box-shadow: 0 0 0 3px var(--ink), 0 7px 0 3px var(--ink); }
+#joinCard .jc-qr { box-shadow: 0 0 0 3px var(--ink); }
+
+#statusText { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Calm mode: the TV is struggling, so the backdrop holds still */
+body.kit-calm .kit-stars i, body.kit-calm .kit-fog i { animation-play-state: paused; }
+@media (prefers-reduced-motion: reduce) { .kit-stars i, .kit-fog i { animation: none; } }
+
+:root { --hill: 14vh; }
+
+</style>
 </head>
 <body>
 
 <div class="sky"></div>
+<div class="kit-stars" aria-hidden="true"><i></i><i></i></div>
+<div class="kit-land" aria-hidden="true"></div>
+<div class="kit-fog" aria-hidden="true"><i></i><i></i></div>
+<script>
+window.KIT = (() => {
+  // ===== Storybook sound kit: warm layered voices, a small echoey room, and signature effects =====
+  const AC = window.AudioContext || window.webkitAudioContext;
+  let ac = null, dry = null, wet = null, nbuf = null;
+  function ctx() {
+    if (ac) return ac;
+    try { ac = new AC(); } catch (e) { return (ac = null); }
+    try {
+      const comp = ac.createDynamicsCompressor();
+      comp.threshold.value = -16; comp.knee.value = 10; comp.ratio.value = 5; comp.attack.value = 0.004; comp.release.value = 0.25;
+      const warm = ac.createBiquadFilter(); warm.type = "lowpass"; warm.frequency.value = 6500; warm.Q.value = 0.4;
+      warm.connect(comp); comp.connect(ac.destination);
+      dry = warm;
+      // a cosy little room: two echo taps, one each side, with a soft tail
+      wet = ac.createGain(); wet.gain.value = 0.2;
+      const d1 = ac.createDelay(1), d2 = ac.createDelay(1), fb = ac.createGain(), soft = ac.createBiquadFilter();
+      d1.delayTime.value = 0.13; d2.delayTime.value = 0.21; fb.gain.value = 0.3; soft.type = "lowpass"; soft.frequency.value = 2200;
+      wet.connect(d1); wet.connect(d2);
+      const side = (node, p) => { if (!ac.createStereoPanner) return node; const s = ac.createStereoPanner(); s.pan.value = p; node.connect(s); return s; };
+      side(d1, -0.45).connect(soft); side(d2, 0.45).connect(soft);
+      soft.connect(fb); fb.connect(d1); soft.connect(warm);
+      nbuf = ac.createBuffer(1, ac.sampleRate, ac.sampleRate);
+      const ch = nbuf.getChannelData(0); for (let i = 0; i < ch.length; i++) ch[i] = Math.random() * 2 - 1;
+    } catch (e) { dry = ac.destination; wet = null; }
+    return ac;
+  }
+  function out(node, echo, p) {
+    if (p && ac.createStereoPanner) { const s = ac.createStereoPanner(); s.pan.value = p; node.connect(s); node = s; }
+    node.connect(dry || ac.destination);
+    if (wet && echo) { if (echo === 1) node.connect(wet); else { const g = ac.createGain(); g.gain.value = echo; node.connect(g); g.connect(wet); } }
+  }
+  const live = () => ac && ac.state !== "closed";
+
+  // One note or sweep, made of a few layers so it sounds round instead of beepy.
+  function tone(type, f0, f1, dur, vol, delay = 0, vib = 0, rate = 7) {
+    if (!live()) return;
+    const t = ac.currentTime + delay;
+    dur = Math.max(0.03, dur); f0 = Math.max(20, f0); f1 = Math.max(20, f1); vol = vol * 0.85;
+    const steady = f0 === f1, buzzy = type === "square" || type === "sawtooth";
+    const g = ac.createGain(); let head = g;
+    if (buzzy) { // tame the buzz into something rubbery
+      const lp = ac.createBiquadFilter(); lp.type = "lowpass"; lp.Q.value = 2.5;
+      const c = Math.min(5000, Math.max(500, Math.max(f0, f1) * 4));
+      lp.frequency.setValueAtTime(c * 1.4, t); lp.frequency.exponentialRampToValueAtTime(c * 0.6, t + dur);
+      g.connect(lp); head = lp;
+    }
+    const oscs = [];
+    const layer = (tp, mult, det, lvl) => {
+      const o = ac.createOscillator(); o.type = tp; o.detune.value = det;
+      o.frequency.setValueAtTime(f0 * mult, t); o.frequency.exponentialRampToValueAtTime(f1 * mult, t + dur);
+      if (lvl === 1) o.connect(g); else { const lg = ac.createGain(); lg.gain.value = lvl; o.connect(lg); lg.connect(g); }
+      oscs.push(o);
+    };
+    layer(type, 1, 0, 1);
+    if (buzzy) layer(type, 1, 12, 0.5);
+    else { layer("sine", 2, 4, type === "sine" ? 0.16 : 0.1); if (steady) layer("sine", 3.01, 0, 0.07); }
+    if (!buzzy && Math.min(f0, f1) < 300) layer("sine", 0.5, 0, 0.22);
+    if (vib) {
+      const l = ac.createOscillator(), lg = ac.createGain(); l.frequency.value = rate; lg.gain.value = vib;
+      l.connect(lg); oscs.forEach(o => lg.connect(o.frequency)); l.start(t); l.stop(t + dur + 0.3);
+    }
+    g.gain.setValueAtTime(0.0001, t);
+    if (steady) { // a struck bell: quick strike, gentle ring
+      g.gain.exponentialRampToValueAtTime(vol, t + 0.006);
+      g.gain.exponentialRampToValueAtTime(vol * 0.4, t + dur * 0.5);
+      g.gain.exponentialRampToValueAtTime(0.0008, t + dur + 0.18);
+    } else {
+      g.gain.exponentialRampToValueAtTime(vol, t + 0.012);
+      g.gain.setValueAtTime(vol, t + dur * 0.6);
+      g.gain.exponentialRampToValueAtTime(0.0008, t + dur + 0.04);
+    }
+    out(head, steady ? 1 : 0.6, (Math.random() - 0.5) * 0.3);
+    oscs.forEach(o => { o.start(t); o.stop(t + dur + 0.25); });
+  }
+
+  // Filtered noise: pops, knocks, crunches, whooshes, splashes.
+  function noise({ f0 = 1000, f1 = f0, q = 1, type = "bandpass", dur = 0.2, vol = 0.2, delay = 0, attack = 0.004, echo = 0.5, pan = 0 } = {}) {
+    if (!live() || !nbuf) return;
+    const t = ac.currentTime + delay;
+    const s = ac.createBufferSource(); s.buffer = nbuf;
+    const f = ac.createBiquadFilter(); f.type = type; f.Q.value = q;
+    f.frequency.setValueAtTime(Math.max(20, f0), t); f.frequency.exponentialRampToValueAtTime(Math.max(20, f1), t + dur);
+    const g = ac.createGain();
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + Math.min(attack, dur * 0.9)); g.gain.exponentialRampToValueAtTime(0.0006, t + dur);
+    s.connect(f); f.connect(g); out(g, echo, pan);
+    s.start(t, Math.random() * 0.5); s.stop(t + dur + 0.05);
+  }
+
+  const PENTA = [1047, 1175, 1319, 1568, 1760, 2093];
+  const fx = {
+    ctx, tone, noise,
+    pop(v = 0.3) { // a wet bubble bloop with a tiny click
+      tone("sine", 380, 1300, 0.07, v);
+      noise({ type: "highpass", f0: 2600, dur: 0.05, vol: v * 0.5, echo: 0.3 });
+      tone("sine", 1600, 2300, 0.05, v * 0.25, 0.05);
+    },
+    boing(f, v = 0.3) { // up, then a springy wobble
+      tone("sine", f, f * 2.8, 0.1, v);
+      tone("sine", f * 2.8, f * 1.7, 0.38, v * 0.55, 0.09, f * 0.14, 15);
+    },
+    knock(v = 0.4, n = 3) { // knuckles on a wooden door
+      for (let k = 0; k < n; k++) {
+        tone("sine", 150, 62, 0.12, v, k * 0.15);
+        noise({ f0: 750, f1: 420, q: 2.6, dur: 0.07, vol: v * 0.9, delay: k * 0.15, echo: 0.8 });
+      }
+    },
+    chomp(v = 0.3, delay = 0) { // munch + crunch
+      noise({ type: "lowpass", f0: 1800, f1: 300, q: 3, dur: 0.1, vol: v, delay });
+      tone("square", 150, 70, 0.09, v * 0.6, delay);
+      noise({ f0: 3200, q: 1.5, dur: 0.045, vol: v * 0.45, delay: delay + 0.05, echo: 0.2 });
+    },
+    sparkle(v = 0.16, n = 5, delay = 0) { // a twinkly run of little bells
+      let last = -1;
+      for (let i = 0; i < n; i++) {
+        let k; do { k = Math.floor(Math.random() * PENTA.length); } while (k === last); last = k;
+        tone("triangle", PENTA[k], PENTA[k], 0.32, v * (1 - i * 0.08), delay + i * 0.065);
+      }
+    },
+    whoosh(v = 0.15, up = true, dur = 0.45, delay = 0) {
+      noise({ f0: up ? 300 : 2400, f1: up ? 2400 : 300, q: 1.2, dur, vol: v * 1.8, attack: dur * 0.4, echo: 0.3, delay });
+    },
+    wind(v = 0.12) {
+      noise({ f0: 250, f1: 1100, q: 2.5, dur: 0.7, vol: v * 2.5, attack: 0.35, echo: 0.4, pan: -0.4 });
+      noise({ f0: 900, f1: 220, q: 2.5, dur: 0.8, vol: v * 2.5, attack: 0.3, echo: 0.4, delay: 0.5, pan: 0.4 });
+    },
+    rustle(v = 0.12, n = 5) { // leaves and bushes
+      for (let i = 0; i < n; i++) noise({ f0: 2000 + Math.random() * 2500, q: 0.8, dur: 0.06, vol: v * (0.9 + Math.random() * 0.9), delay: i * 0.07, echo: 0.2, pan: (Math.random() - 0.5) * 0.6 });
+    },
+    blub(v = 0.14, n = 6, gap = 0.12) { // bubbles rising in a pot
+      for (let i = 0; i < n; i++) tone("sine", 200 + Math.random() * 250, 560 + Math.random() * 420, 0.06, v, i * gap + Math.random() * 0.03);
+    },
+    splash(f, v = 0.25) { // something plops into the cauldron
+      noise({ type: "lowpass", f0: 3600, f1: 500, q: 0.7, dur: 0.35, vol: v * 0.8, attack: 0.01 });
+      tone("sine", f * 2, f * 0.6, 0.22, v);
+      fx.blub(v * 0.55, 3, 0.08);
+    },
+    poof(v = 0.25) { // magic smoke and a twinkle
+      noise({ f0: 400, f1: 3200, q: 0.8, dur: 0.38, vol: v, attack: 0.03, echo: 0.6 });
+      tone("triangle", 523, 1046, 0.35, v * 0.6, 0.2);
+      fx.sparkle(v * 0.55, 4, 0.25);
+    },
+    ding(f, v = 0.2, dur = 0.4) { // a clear bell
+      tone("triangle", f, f, dur, v);
+      tone("sine", f * 2.76, f * 2.76, dur * 0.5, v * 0.18);
+    },
+    fanfare(notes, v = 0.22, mult = 1, step = 0.1) { // a tiny brass band, with harmony, bass and a cymbal shimmer
+      const last = notes.length - 1, end = last * step;
+      notes.forEach((f, i) => { if (i < last) { tone("triangle", f * mult, f * mult, 0.18, v, i * step); tone("sine", f * mult * 0.75, f * mult * 0.75, 0.16, v * 0.3, i * step); } });
+      const top = notes[last] * mult;
+      [1, 1.26, 1.5].forEach((k, j) => tone("triangle", top * k / (j ? 2 : 1), top * k / (j ? 2 : 1), 0.85, v * (j ? 0.5 : 1), end, 4, 5.5));
+      tone("sine", notes[0] * mult / 2, notes[0] * mult / 2, 0.6, v * 0.6, end);
+      noise({ type: "highpass", f0: 7000, dur: 0.9, vol: v * 0.3, attack: 0.01, delay: end, echo: 1 });
+      fx.sparkle(v * 0.55, 4, end + 0.12);
+    },
+  };
+  return fx;
+})();
+</script>
 <div class="moon" aria-hidden="true"><i></i></div>
 
 <section class="view home" id="home">
@@ -271,23 +544,16 @@ button:focus-visible { outline: 4px solid var(--moon); outline-offset: 3px; }
   // ---------- Audio and voice ----------
   let ac = null;
   function audio() {
-    if (!ac) { try { ac = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { ac = null; } }
+    if (!ac) { try { ac = KIT.ctx(); } catch (e) { ac = null; } }
     if (ac && ac.state === "suspended") ac.resume().catch(() => {});
     return ac;
   }
-  function tone(type, f0, f1, dur, vol, delay = 0) {
-    const a = ac; if (!a) return;
-    const t = a.currentTime + delay;
-    const o = a.createOscillator(), g = a.createGain();
-    o.type = type; o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(f1, t + dur);
-    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + 0.01); g.gain.exponentialRampToValueAtTime(0.001, t + dur);
-    o.connect(g).connect(a.destination); o.start(t); o.stop(t + dur + .05);
-  }
+  function tone(type, f0, f1, dur, vol, delay = 0, vib = 0) { KIT.tone(type, f0, f1, dur, vol, delay, vib); }
   const meow = (k = 1) => { tone("sine", 700 * k, 900 * k, .12, .15); tone("sine", 900 * k, 550 * k, .25, .15, .1); };
-  const blip = (n) => tone("triangle", 440 + n * 55, 440 + n * 55, .14, .18);
-  const yay = () => [523, 659, 784, 1047].forEach((f, i) => tone("triangle", f, f, i === 3 ? .5 : .14, .2, i * .09));
+  const blip = (n) => KIT.ding(440 + n * 55, .2, .32);
+  const yay = () => KIT.fanfare([523, 659, 784, 1047], .2, 1, .09);
   const hmm = () => { tone("sine", 392, 330, .25, .15); tone("sine", 330, 392, .3, .15, .25); };
-  const slide = () => tone("sawtooth", 200, 120, .3, .05);
+  const slide = () => KIT.whoosh(.1, false, .3);
   // one voice at a time: a counting child gets the voice, others count with chimes and numbers
   let voiceUntil = 0;
   const voiceFree = () => performance.now() > voiceUntil;
